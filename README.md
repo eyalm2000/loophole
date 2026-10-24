@@ -31,7 +31,7 @@ Use this if you want the worker. Requires Android 16 or later, and a domain.
 
 1. Click the button above.
 2. Log in to Cloudflare (a free account is fine).
-3. Leave every setting at its default and click Deploy.
+3. Select your GitHub account and keep the other settings on their defaults, then click Deploy.
 4. When it finishes, click Visit, and follow the instructions from there. 
 
 The Cloudflare free plan is enough for personal use (100,000 requests per day), and the Worker runs on Cloudflare's edge, so it adds minimal latency to your queries.
