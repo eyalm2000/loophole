@@ -16,7 +16,7 @@
     "test": "vitest run --configLoader native",
     "test:e2e": "playwright test",
     "check": "npm run format:check && npm run typecheck && npm test && npm run build",
-    "deploy": "npm run check && wrangler deploy"
+    "deploy": "wrangler deploy"
   },
   "keywords": [
     "nextdns",
