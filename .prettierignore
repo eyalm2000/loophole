@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars*
+package-lock.json
+test-results/
+playwright-report/
+.git/

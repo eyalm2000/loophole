@@ -1,0 +1,632 @@
+@import 'tailwindcss';
+
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  background: #000;
+  color: #ededed;
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 280px;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+a {
+  color: inherit;
+  text-underline-offset: 4px;
+}
+a:hover {
+  color: #fff;
+}
+button,
+a,
+input,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #b3b3b3;
+  outline-offset: 4px;
+}
+h1,
+h2,
+p {
+  margin: 0;
+}
+h1,
+h2 {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.35px;
+}
+h2 {
+  font-size: 18px;
+}
+p,
+li {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #b5b5b5;
+}
+ul,
+ol {
+  padding-left: 21px;
+  margin: 0;
+}
+ul {
+  list-style-type: disc;
+}
+ol {
+  list-style-type: decimal;
+}
+a {
+  text-decoration-line: underline;
+}
+li + li {
+  margin-top: 10px;
+}
+strong {
+  font-weight: 500;
+  color: #ededed;
+}
+small {
+  font-size: 12px;
+  color: #929292;
+}
+code {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+}
+button {
+  color: inherit;
+}
+.app-shell {
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 64px 24px;
+  padding-bottom: max(48px, env(safe-area-inset-bottom));
+}
+.app-frame {
+  width: 100%;
+  max-width: 420px;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.muted {
+  color: #929292;
+  font-size: 13px;
+}
+.button {
+  gap: 8px;
+  border: 1px solid #e5e5e5;
+  background: #ededed;
+  color: #111;
+  border-radius: 6px;
+  min-height: 42px;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+.loading-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.dashboard,
+.pin-screen,
+.step-content,
+.modal[open] {
+  animation: enter 160ms ease-out;
+}
+button,
+a,
+input,
+.connection-banner {
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+.button:hover:not(:disabled) {
+  background: #d4d4d4;
+}
+.button:active:not(:disabled) {
+  background: #bdbdbd;
+}
+.button.secondary {
+  border-color: #303030;
+  background: #0a0a0a;
+  color: #ededed;
+}
+.button.secondary:hover:not(:disabled) {
+  background: #191919;
+}
+.button.compact {
+  width: auto;
+  min-height: 34px;
+  padding: 7px 14px;
+}
+.text-button {
+  border: 0;
+  background: none;
+  color: #a3a3a3;
+  font-size: 12px;
+  padding: 9px 0;
+  line-height: 1.5;
+}
+.text-button:hover:not(:disabled) {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.error {
+  border-left: 2px solid #777;
+  padding: 8px 12px;
+  color: #d4d4d4;
+  font-size: 13px;
+  line-height: 1.7;
+  margin-top: 12px;
+}
+.save-notice {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #303030;
+  background: #0a0a0a;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-top: 24px;
+  font-size: 12px;
+  color: #b5b5b5;
+  line-height: 1.6;
+}
+.save-notice > span {
+  flex: 1;
+}
+.save-notice .text-button {
+  padding: 0;
+}
+label {
+  display: block;
+  font-size: 13px;
+  color: #d4d4d4;
+}
+input:not([type='radio']) {
+  display: block;
+  width: 100%;
+  border: 1px solid #303030;
+  background: #000;
+  color: #ededed;
+  border-radius: 6px;
+  padding: 11px 12px;
+  margin-top: 10px;
+  font-size: 14px;
+  min-width: 0;
+}
+input::placeholder {
+  color: #626262;
+}
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.pin-screen {
+  max-width: 288px;
+  margin: auto;
+  text-align: center;
+}
+.pin-screen h1 {
+  font-size: 20px;
+  font-weight: 400;
+}
+.pin-entry {
+  position: relative;
+  display: block;
+  margin: 34px auto 35px;
+  width: 170px;
+  padding: 8px;
+  cursor: text;
+}
+.pin-entry > input {
+  position: absolute;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100%;
+  opacity: 0.001;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 1;
+  cursor: text;
+}
+.pin-entry:focus-within {
+  outline: 1px solid #555;
+  border-radius: 6px;
+  outline-offset: 5px;
+}
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}
+.pin-dots > span {
+  width: 9px;
+  height: 9px;
+  border: 1px solid #555;
+  border-radius: 50%;
+  background: transparent;
+}
+.pin-dots > span.filled {
+  background: #ededed;
+  border-color: #ededed;
+}
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 72px);
+  justify-content: space-between;
+  row-gap: 18px;
+  margin-bottom: 34px;
+}
+.keypad > button {
+  display: grid;
+  place-items: center;
+  border: 1px solid #2c2c2c;
+  border-radius: 50%;
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  background: #0a0a0a;
+  font-size: 24px;
+  font-weight: 400;
+}
+.keypad > button:hover:not(:disabled) {
+  background: #1a1a1a;
+}
+.keypad > button:active:not(:disabled) {
+  background: #303030;
+}
+.keypad > .delete-digit {
+  font-size: 22px;
+  border-color: transparent;
+  background: transparent;
+}
+.pin-screen .error {
+  text-align: left;
+}
+.connection-banner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-height: 58px;
+  padding: 16px;
+  border: 1px solid #303030;
+  background: #0a0a0a;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 400;
+}
+.connection-banner small {
+  font-size: 11px;
+}
+.connection-banner[data-state='connected'] {
+  color: #86b89a;
+  border-color: #294434;
+}
+.connection-banner[data-state='disconnected'] {
+  color: #c58c8c;
+  border-color: #4b3030;
+}
+.resolver-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 0 24px;
+}
+.resolver-row strong {
+  display: block;
+  font-size: 16px;
+  margin-top: 8px;
+  font-weight: 400;
+}
+.field-caption {
+  display: block;
+  font-size: 12px;
+  color: #919191;
+}
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 0 0 24px;
+  font-size: 12px;
+  color: #b5b5b5;
+}
+.endpoint-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 0;
+}
+.copy-wrap {
+  min-width: 0;
+}
+.copy-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid #292929;
+  border-radius: 6px;
+  background: #080808;
+  padding: 11px 12px;
+  margin-top: 9px;
+}
+.copy-card code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: all;
+  color: #d4d4d4;
+}
+.copy-button {
+  border: 0;
+  background: none;
+  color: #a3a3a3;
+  font-size: 11px;
+  line-height: 20px;
+  padding: 0;
+  flex-shrink: 0;
+  min-height: 24px;
+}
+.copy-button:hover {
+  color: #fff;
+}
+.dashboard-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.modal {
+  padding: 24px;
+  width: calc(100% - 32px);
+  max-width: 400px;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  border: 1px solid #303030;
+  background: #0a0a0a;
+  color: #ededed;
+  border-radius: 8px;
+  margin: auto;
+}
+.modal::backdrop {
+  background: rgb(0 0 0 / 80%);
+}
+.modal h2 {
+  margin-bottom: 24px;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+.dialog-actions > .button {
+  width: auto;
+}
+.provider-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.provider-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.provider-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 43px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.provider-option > input {
+  accent-color: #ededed;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.wizard h1 {
+  margin-bottom: 28px;
+}
+.step-content {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.wizard-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin-top: 34px;
+}
+.wizard-actions > .button,
+.pin-actions > .button {
+  flex: 1;
+  width: auto;
+}
+.pin-actions {
+  display: flex;
+  gap: 10px;
+}
+.choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.instructions-content {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+details {
+  border-top: 1px solid #262626;
+  padding-top: 18px;
+}
+summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #b5b5b5;
+}
+details p {
+  margin: 14px 0;
+}
+details .copy-wrap + .copy-wrap {
+  margin-top: 16px;
+}
+.record-fields {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  border: 1px solid #292929;
+  border-radius: 6px;
+  padding: 14px;
+}
+.record-fields dt {
+  font-size: 12px;
+  color: #929292;
+}
+.record-fields dd {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #ededed;
+}
+@media (max-width: 420px) {
+  .app-shell {
+    padding: 40px 24px;
+  }
+  .keypad {
+    grid-template-columns: repeat(3, 68px);
+    row-gap: 16px;
+  }
+  .keypad > button {
+    width: 68px;
+    height: 68px;
+  }
+  .pin-screen {
+    max-width: 270px;
+  }
+  .modal {
+    padding: 22px;
+  }
+  .connection-banner {
+    font-size: 13px;
+  }
+}
+@media (max-height: 600px) {
+  .app-shell {
+    align-items: flex-start;
+    padding-top: 32px;
+  }
+  .pin-entry {
+    margin-top: 22px;
+    margin-bottom: 22px;
+  }
+  .keypad {
+    row-gap: 10px;
+    margin-bottom: 24px;
+  }
+}
