@@ -12,8 +12,7 @@ export function SvcbStep({
   return (
     <div className="stack">
       <p>
-        Open your domain’s DNS records (wherever your domain’s DNS is hosted) and add this
-        record.
+        Open your domain’s DNS records (wherever your domain’s DNS is hosted) and add this record.
       </p>
       <dl className="record-fields">
         <div>

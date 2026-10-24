@@ -127,8 +127,8 @@ export function OnboardingWizard({
         {step === 0 && (
           <>
             <p>
-              Connect your domain, choose a DNS resolver, and set a PIN to protect your Loophole dashboard.
-              Then we’ll walk you through setting up your phone.
+              Connect your domain, choose a DNS resolver, and set a PIN to protect your Loophole
+              dashboard. Then we’ll walk you through setting up your phone.
             </p>
             <p>You will need:</p>
             <ul>
@@ -157,8 +157,8 @@ export function OnboardingWizard({
         {step === 2 &&
           (location.hostname === config.domain ? (
             <p>
-              Loophole is running at <strong>{config.domain}</strong>. Continue to check your
-              DNS record.
+              Loophole is running at <strong>{config.domain}</strong>. Continue to check your DNS
+              record.
             </p>
           ) : (
             <>
@@ -176,8 +176,8 @@ export function OnboardingWizard({
                 </li>
               </ol>
               <p>
-                Open Loophole at the new domain to continue setup. This page cannot continue on
-                the Workers address.
+                Open Loophole at the new domain to continue setup. This page cannot continue on the
+                Workers address.
               </p>
               <a className="button secondary" href={`https://${config.domain}/?domain-setup=1`}>
                 Open {config.domain}

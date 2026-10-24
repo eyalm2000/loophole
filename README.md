@@ -10,35 +10,35 @@ Android's Private DNS connects over DNS-over-TLS on port 853. On networks that b
 
 With the flags on, Android discovers DoH endpoints itself through DDR: it looks up a special SVCB DNS record named `_dns.<hostname>` before connecting, and if that record advertises a DoH path, Android skips port 853 and talks DoH, usually over HTTP/3.
 
-| Group | Providers | On a network that blocks port 853 |
-| --- | --- | --- |
-| Hardcoded into Android | Google (dns.google), Cloudflare (cloudflare-dns.com) | DoH works, no flags needed |
-| Works without the flags | All providers with a DoT endpoint (stock Private DNS) | Works only where port 853 is open; breaks where it is blocked |
-| Works with the flags | Quad9 (dns.quad9.net) and other supported providers | DoH works via DDR |
-| Not supported | NextDNS, AdGuard DNS, Control D, OpenDNS, CleanBrowsing, Mullvad DNS, and most others | Fails even with the flags; needs the worker |
+| Group                   | Providers                                                                             | On a network that blocks port 853                             |
+| ----------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Hardcoded into Android  | Google (dns.google), Cloudflare (cloudflare-dns.com)                                  | DoH works, no flags needed                                    |
+| Works without the flags | All providers with a DoT endpoint (stock Private DNS)                                 | Works only where port 853 is open; breaks where it is blocked |
+| Works with the flags    | Quad9 (dns.quad9.net) and other supported providers                                   | DoH works via DDR                                             |
+| Not supported           | NextDNS, AdGuard DNS, Control D, OpenDNS, CleanBrowsing, Mullvad DNS, and most others | Fails even with the flags; needs the worker                   |
 
-Among major DNS services, Quad9 is the only one that supports DDR and needs the flag turned on. Google and Cloudflare do not need it because they are hardcoded. Most DNS services do not publish DDR records at all. 
- 
+Among major DNS services, Quad9 is the only one that supports DDR and needs the flag turned on. Google and Cloudflare do not need it because they are hardcoded. Most DNS services do not publish DDR records at all.
+
 That is what this worker is for: it gives you a DoH endpoint on your own domain, and you publish the SVCB record for it. Android then discovers your gateway the same way it discovers Quad9's, and your gateway forwards queries to whatever upstream you configured. The filtering service never needs to support DDR itself.
 
-## Getting Started 
+## Getting Started
 
 ### 1. Guided setup (recommended)
 
-Use this if you want the worker. Requires Android 16 or later, and a domain. 
+Use this if you want the worker. Requires Android 16 or later, and a domain.
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/eyalm2000/loophole)
 
 1. Click the button above.
 2. Log in to Cloudflare (a free account is fine).
 3. Select your GitHub account and keep the other settings on their defaults, then click Deploy.
-4. When it finishes, click Visit, and follow the instructions from there. 
+4. When it finishes, click Visit, and follow the instructions from there.
 
 The Cloudflare free plan is enough for personal use (100,000 requests per day), and the Worker runs on Cloudflare's edge, so it adds minimal latency to your queries.
 
 ### 2. Flags only
 
-Use this if your provider publishes DDR records (Quad9 and other supported providers) and you do not need a worker. Requires Android 16 or later. 
+Use this if your provider publishes DDR records (Quad9 and other supported providers) and you do not need a worker. Requires Android 16 or later.
 
 Run the two commands in [Enable the flags](#enable-the-flags) below, set your Private DNS hostname to your provider's hostname (for example `dns.quad9.net`), and toggle airplane mode.
 
@@ -66,7 +66,6 @@ dig _dns.<your-hostname> SVCB
 ```
 
 Wait for the record to show up: DNS changes can take a few minutes to propagate. After that, run the commands in [Enable the flags](#enable-the-flags), set your Private DNS hostname to your hostname, and toggle airplane mode. No Loophole worker is involved.
-
 
 ## Enable the flags
 
@@ -118,7 +117,7 @@ The gateway's `/dns-query` endpoint is open by design. DDR requires Android to r
 
 #### PIN
 
-The dashboard is protected by a 4-digit PIN you set during setup. 
+The dashboard is protected by a 4-digit PIN you set during setup.
 
 #### Who sees your traffic
 
@@ -145,7 +144,6 @@ No. Nothing runs on the phone after setup. Private DNS is a system setting, not 
 #### What if my provider adds DDR records later?
 
 Then you don't need the worker for it. Use the flags-only path with your provider's hostname, the same way Quad9 works today.
-
 
 ## License
 
