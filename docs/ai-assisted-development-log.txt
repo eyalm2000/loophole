@@ -1,0 +1,2078 @@
+AI-ASSISTED DEVELOPMENT LOG
+Loophole: DNS connectivity diagnostics and troubleshooting
+Tool: AWS Kiro AI (Kiro IDE agent)
+
+=====================================================================
+ABOUT THIS LOG
+=====================================================================
+
+This file records the technical prompts and the corresponding AWS Kiro
+AI responses for the diagnostics work in this pull request.
+
+Scope and editing notes:
+
+1. Included: the technical prompts and assistant responses from the
+   start of the Phase 1 analysis up to the final execution task.
+   Prompts and responses are reproduced from the Kiro conversation
+   history, including the language they were written in (some early
+   responses are in Turkish).
+
+2. Excluded on purpose:
+   - The earlier environment-setup exchange (installing Git and the
+     GitHub CLI, cloning the fork, adding the upstream remote,
+     `gh auth login`). It is unrelated to the code and contained a
+     one-time device authorization code.
+   - Tool calls and tool outputs (file reads, command output, test
+     runner output). Only the prompts and the assistant's written
+     responses are included. Test results are summarized in the
+     responses themselves.
+
+3. Deliberate redactions:
+   - The name of a specific VPN application is replaced with
+     "[specific VPN application redacted]".
+   - That application's DNS-filtering feature name is replaced with
+     "[VPN DNS-filtering feature name redacted]".
+   - Links to that vendor's support pages are replaced with
+     "[VPN vendor support URL redacted]".
+   - In Response 4 (in Turkish), a few phrases that used the
+     application's name as an adjective (for example "<name> DNS") are
+     written as "VPN sağlayıcısının DNS'i" ("the VPN provider's DNS")
+     so the sentences stay readable. The technical meaning is the same.
+   No credentials, tokens, cookies, keys or secrets appear in this log.
+
+4. Unavailable content:
+   - One prompt (Prompt 3, a read-only verification request) got no
+     assistant response. The tool call was cancelled before it ran,
+     and the conversation moved on to Prompt 4. Nothing is
+     reconstructed for that turn.
+   - Prompt 9 and Prompt 10 (the two final execution tasks) are given
+     as summaries, not verbatim, and are labeled that way.
+   - The response to Prompt 10 is the completion report delivered in
+     the Kiro session after this file was committed, so it is not part
+     of this file.
+   - All other prompts and responses are reproduced in full.
+
+=====================================================================
+PROMPT 1 (user): Phase 1 analysis request
+=====================================================================
+
+# Loophole — Phased Engineering Task: IPv4/IPv6 Network Controls and Connectivity Diagnostics
+
+## Role
+
+Act as a senior software engineer specializing in Cloudflare Workers, TypeScript, DNS infrastructure, IPv4/IPv6 networking, DNS-over-HTTPS (DoH), Android Private DNS, and Designated Resolver Discovery (DDR).
+
+Your task is to evaluate and, subject to approval, implement two enhancements in the existing Loophole project:
+
+1. Configurable IPv4/IPv6 network behavior.
+2. A post-deployment network connectivity diagnostic.
+
+Follow a phased, evidence-driven engineering workflow. Preserve existing functionality, avoid unnecessary dependencies, and prioritize security, maintainability, backward compatibility, and accurate reporting.
+
+## CRITICAL WORKFLOW REQUIREMENT
+
+**PHASE 1 IS ANALYSIS ONLY. DO NOT MODIFY THE CODEBASE DURING PHASE 1.**
+
+Do not edit, create, delete, or overwrite source files, configuration files, documentation, tests, or dependency lockfiles during the initial investigation.
+
+Do not deploy anything, modify live DNS records, or change Cloudflare account resources.
+
+First inspect the repository, identify what is technically feasible, and present your findings and implementation plan.
+
+Then STOP and wait for my explicit approval before making any code changes.
+
+Do not interpret silence, the initial task description, or the existence of this prompt as approval to proceed to Phase 2.
+
+---
+
+# PHASE 1 — Repository Inspection and Technical Feasibility Analysis
+
+## 1. Inspect the Existing Project
+
+Inspect the actual repository rather than relying on assumptions or documentation alone.
+
+Review:
+
+- Repository structure and package scripts.
+- Cloudflare Worker entry point and request routing.
+- DNS proxy implementation and upstream DoH configuration.
+- Custom-domain handling and DDR/SVCB records.
+- Configuration storage and administrative APIs.
+- Dashboard components and state management.
+- Authentication, PIN validation, and session management.
+- Existing connectivity indicators and polling intervals.
+- Existing unit, integration, and browser tests.
+- Cloudflare configuration and deployment settings.
+- Current documentation and known limitations.
+
+Inspect the relevant implementation in enough detail to trace how DNS requests travel from the client through the Worker to the upstream resolver.
+
+Identify the actual files and functions responsible for each behavior.
+
+Do not assume that a feature exists merely because it is described in the README. Confirm important claims against the source code.
+
+## 2. Feature A — IPv4/IPv6 Network Controls
+
+### Objective
+
+Determine whether Loophole can provide configurable IPv4-only, IPv6-only, and dual-stack behavior for its relevant network connections.
+
+The intended modes are:
+
+- `dual-stack`
+- `ipv4-only`
+- `ipv6-only`
+
+Before proposing implementation details, analyze the following network paths separately.
+
+### A. Client-to-Cloudflare ingress
+
+Investigate whether the application can control the IP family used by an Android device or another client when connecting to the Cloudflare Worker.
+
+Determine which parts are controlled by Cloudflare's edge infrastructure, public DNS records, and the client's network stack.
+
+Do not assume that application code running inside the Worker can force the client to use IPv4 or IPv6.
+
+### B. Worker-to-upstream egress
+
+Investigate the capabilities of the current Cloudflare Workers runtime and the existing outbound `fetch()` implementation.
+
+Determine whether the runtime supports reliable IP-family selection or enforcement for connections to upstream DoH providers.
+
+Distinguish among:
+
+- A preference for an IP family.
+- DNS address selection.
+- Actual transport-level IP-family enforcement.
+- Post-connection verification.
+
+Do not treat these as equivalent.
+
+### C. Upstream hostname resolution
+
+Determine how the upstream hostname is resolved and whether the application can control which address family is used for the resulting connection.
+
+Consider DNS resolution, TLS hostname verification, HTTPS behavior, and any restrictions imposed by the Workers runtime.
+
+### D. DDR/SVCB compatibility
+
+Inspect the current SVCB/DDR configuration and determine how the proposed network modes interact with:
+
+- The advertised DoH hostname.
+- ALPN parameters such as `h2` and `h3`.
+- A and AAAA records.
+- The advertised DoH path.
+- The actual network capabilities of the deployed endpoint.
+
+Do not assume that changing a SVCB parameter automatically forces a particular IP family.
+
+### Required Phase 1 Deliverable for Feature A
+
+Provide a feasibility matrix:
+
+| Network path | IPv4-only | IPv6-only | Dual-stack | Enforcement mechanism | Limitations |
+|---|---|---|---|---|---|
+| Client to Cloudflare | To be investigated | To be investigated | To be investigated | Evidence-based | Evidence-based |
+| Worker to upstream | To be investigated | To be investigated | To be investigated | Evidence-based | Evidence-based |
+| Upstream DNS resolution | To be investigated | To be investigated | To be investigated | Evidence-based | Evidence-based |
+| DDR/SVCB discovery | To be investigated | To be investigated | To be investigated | Evidence-based | Evidence-based |
+
+Replace every provisional entry with findings grounded in the actual code and supported platform capabilities.
+
+If the requested control cannot be reliably implemented within the existing architecture, explain why and propose alternatives.
+
+Do not recommend a UI toggle that implies a network restriction the system cannot enforce.
+
+If separate controls are necessary for separate network paths, recommend that architecture explicitly.
+
+## 3. Feature B — Post-Deployment Connectivity Diagnostics
+
+### Objective
+
+Determine how to implement a reliable, user-initiated connectivity test in the existing dashboard.
+
+Consider this illustrative configuration:
+
+- Custom domain: `xxxxx.io`
+- Upstream DoH hostname: `bbbbbb.dns.nextdns.io`
+- Worker endpoint: the hostname configured for the user's deployment.
+
+These are placeholders. Do not hardcode them or assume they exist.
+
+Inspect the existing implementation and determine which checks can be performed by the Worker, which require browser-side checks, and which require an external client or an independent diagnostic environment.
+
+Evaluate the following checks.
+
+### Check 1 — Worker reachability
+
+Determine how to verify that the deployed Worker responds through its intended HTTPS endpoint.
+
+Distinguish a successful HTTP response from a meaningful application health check.
+
+### Check 2 — Custom-domain reachability
+
+Determine how to check whether the custom domain resolves and reaches the expected HTTPS endpoint.
+
+Distinguish DNS resolution failures, TLS errors, HTTP errors, and routing errors where the available execution environment permits.
+
+Do not claim that the Worker can independently verify public DNS propagation if it cannot.
+
+### Check 3 — DoH functionality
+
+Determine how to send a valid DNS query to the configured DoH endpoint.
+
+Evaluate:
+
+- The appropriate HTTP request format.
+- DNS message validity.
+- HTTP status and content type.
+- DNS response validity.
+- Query identifiers and response matching where applicable.
+- Timeouts and error handling.
+
+Use a deterministic, harmless test query with predictable behavior. Do not depend on a random or potentially nonexistent domain.
+
+### Check 4 — Upstream resolver
+
+Determine how to verify that the configured upstream resolver accepts the query and returns a valid response.
+
+Report transport failures, HTTP errors, DNS errors, and timeouts distinctly.
+
+Avoid displaying raw DNS payloads or unnecessary query details.
+
+### Check 5 — IPv4/IPv6 connectivity
+
+Determine whether the current architecture can independently test IPv4 and IPv6 transport behavior.
+
+Do not infer IPv4 or IPv6 connectivity merely because a hostname has an A or AAAA record.
+
+Do not confuse the client's connection to Cloudflare with the Worker's outbound connection to the upstream resolver.
+
+Report unsupported or inconclusive checks honestly.
+
+### Required Phase 1 Deliverable for Feature B
+
+Present a diagnostic feasibility matrix:
+
+| Diagnostic | Proposed execution location | Feasibility | What it proves | Limitations |
+|---|---|---|---|---|
+| Worker reachability | To be determined | To be determined | To be determined | To be determined |
+| Custom-domain reachability | To be determined | To be determined | To be determined | To be determined |
+| DoH request and response | To be determined | To be determined | To be determined | To be determined |
+| Upstream resolver | To be determined | To be determined | To be determined | To be determined |
+| IPv4/IPv6 transport | To be determined | To be determined | To be determined | To be determined |
+
+Clearly explain which checks can be implemented using the existing Worker and dashboard alone, and which require a different execution location or additional infrastructure.
+
+## 4. Security and Operational Review
+
+Before recommending an implementation, evaluate:
+
+- The publicly accessible `/dns-query` endpoint.
+- The existing dashboard authentication and session mechanisms.
+- The possibility of turning diagnostic endpoints into unrestricted HTTP or DNS proxies.
+- Server-side configuration validation.
+- Request timeouts and resource consumption.
+- Excessive frontend polling.
+- DNS query and diagnostic logging.
+- Exposure of credentials, tokens, or sensitive configuration.
+- Cloudflare platform limitations and possible cost implications.
+
+Administrative diagnostics must use the existing authentication model.
+
+Do not add dashboard authentication to the public DoH endpoint if that would break the existing DDR/DoH design.
+
+Do not introduce arbitrary user-controlled destination URLs into diagnostic endpoints.
+
+Prefer the existing validated upstream configuration and a fixed, deterministic test query.
+
+## 5. Baseline Verification
+
+Inspect the project's available scripts and dependencies.
+
+Determine whether the current environment can execute:
+
+- Dependency installation.
+- Formatting and linting.
+- Type checking.
+- Unit tests.
+- Integration tests.
+- Browser tests.
+- Production builds.
+
+If it is safe and useful, run non-mutating baseline checks during Phase 1.
+
+Do not install dependencies or change lockfiles during this phase without explicit approval.
+
+If a check cannot run because dependencies are unavailable, the network is restricted, or the environment is incomplete, report the limitation.
+
+Do not claim that tests pass unless they have actually completed successfully.
+
+Do not make changes merely to get the baseline checks to pass.
+
+## 6. Phase 1 Final Report
+
+Before stopping, deliver the following:
+
+1. **Executive Summary:** What the project currently does and what the requested enhancements would accomplish.
+2. **Relevant Files:** Exact file paths and their current responsibilities.
+3. **Current Architecture:** A concise description of the DNS request and response flow.
+4. **IPv4/IPv6 Feasibility Matrix:** Evidence-based support and limitations for each network path.
+5. **Connectivity Diagnostic Matrix:** Feasible checks, execution locations, and limitations.
+6. **Security Findings:** Relevant risks and recommended mitigations.
+7. **Baseline Test Results:** Exact commands and actual outcomes, if executed.
+8. **Proposed Implementation Plan:** Smallest maintainable set of changes, organized by file or component.
+9. **Acceptance Criteria:** How each feature will be tested and verified.
+10. **Decisions Requiring Approval:** Any architectural trade-offs or unsupported requirements.
+
+End the report with a concise list of the proposed changes.
+
+**Then stop. Do not edit any files until I explicitly approve Phase 2.**
+
+---
+
+# PHASE 2 — Implementation (Only After Explicit Approval)
+
+After I approve the Phase 1 findings and implementation plan, implement the approved changes.
+
+If I approve only part of the plan, implement only that part.
+
+If a newly discovered limitation materially changes the agreed design, stop and explain the issue before proceeding with the affected implementation.
+
+## Implementation Requirements
+
+### A. IPv4/IPv6 controls
+
+- Implement only network controls that the platform can genuinely enforce.
+- Use explicit configuration values and server-side validation.
+- Preserve current behavior by default.
+- Persist settings using the existing configuration mechanism.
+- Clearly distinguish supported, unsupported, and unverified network modes.
+- Keep the dashboard consistent with the actual enforced configuration.
+- Do not silently fall back to a different network mode without reporting it.
+
+### B. Connectivity diagnostics
+
+- Add a user-initiated `Test Connectivity` action to the existing dashboard.
+- Reuse the existing architecture and UI conventions.
+- Provide independent results for the agreed diagnostic checks.
+- Display `PASS`, `FAIL`, `UNSUPPORTED`, or `INCONCLUSIVE` as appropriate.
+- Include concise explanations, measurable durations, and actionable troubleshooting guidance.
+- Avoid unnecessary repeated requests or overlapping diagnostic runs.
+- Do not expose secrets, raw DNS responses, or sensitive configuration.
+- Ensure diagnostics cannot become an unrestricted proxy or create an avoidable resource-consumption risk.
+
+### C. Automated tests
+
+Add or update tests covering the approved behavior.
+
+Include configuration validation, authentication, diagnostic success and failure cases, timeouts, malformed DNS responses, unsupported network modes, and regressions affecting existing DoH and DDR functionality as applicable.
+
+Use deterministic mocks for unit tests. Keep tests independent of live third-party DNS services unless explicitly classified as optional integration tests.
+
+### D. Documentation
+
+Document the actual supported network modes, enforcement boundaries, diagnostic behavior, configuration steps, limitations, and troubleshooting procedures.
+
+Do not promise functionality that has not been implemented or verified.
+
+### E. Final Verification
+
+After implementation:
+
+1. Review the complete diff.
+2. Run the repository's applicable formatting, linting, type-checking, testing, and build commands.
+3. Report exact commands and actual results.
+4. Identify tests that could not run and explain why.
+5. Review authentication, DNS behavior, configuration handling, and resource consumption.
+6. Confirm that no unrelated files or user changes were overwritten.
+7. Do not deploy or change live Cloudflare resources without separate explicit authorization.
+
+## Final Implementation Report
+
+Provide:
+
+- Summary of implemented changes.
+- Exact files changed.
+- IPv4/IPv6 support matrix showing actual enforcement and limitations.
+- Connectivity diagnostic behavior and example results.
+- Security review.
+- Automated test and build results.
+- Documentation changes.
+- Remaining limitations.
+- Manual verification steps using the user's own custom domain and upstream DoH hostname.
+
+Never claim that the feature is complete merely because the UI exists or the code has been written.
+
+**Immediate instruction: Begin Phase 1 only. Inspect, analyze, report, and wait for explicit approval. Do not modify the codebase.**
+
+=====================================================================
+RESPONSE 1 (AWS Kiro AI): Phase 1 report (original in Turkish)
+=====================================================================
+
+# Phase 1 Raporu: IPv4/IPv6 Kontrolleri ve Bağlantı Tanılama
+
+Hiçbir dosyayı değiştirmedim. `git status` temiz. Deploy yapmadım, Cloudflare kaynaklarına dokunmadım.
+
+## 1. Özet
+
+Loophole, tek bir Cloudflare Worker'dır. Android'in Private DNS özelliğinin DDR ile keşfedebileceği bir DoH ağ geçidi sunar. Worker, gelen DNS sorgusunu seçilen upstream DoH sağlayıcısına iletir. Dashboard PIN ile korunur ve ayarlar KV'de, oturum/PIN Durable Object'te tutulur.
+
+- **Feature A (IPv4/IPv6):** Workers runtime'ında giden `fetch()` için IP ailesi seçme veya zorlama yoktur. Bu yüzden çalışan bir "ipv4-only / ipv6-only" anahtarı sunulamaz. Aşağıdaki "Onay gerektiren kararlar" bölümüne bak.
+- **Feature B (tanılama):** Worker reachability, DoH işlevi ve upstream resolver kontrolleri mevcut mimariyle yapılabilir. Custom domain kontrolü kısmen yapılabilir. IPv4/IPv6 taşıma testi yapılamaz.
+
+## 2. İlgili dosyalar
+
+| Dosya | Sorumluluk |
+|---|---|
+| `worker/index.ts` | Giriş noktası. `/api/*`, `/dns-query` (CORS `*`) ve statik varlık yönlendirmesi. Güvenlik başlıkları burada. |
+| `worker/api/router.ts` | Yönetim API'si. `/api/test`, `/api/verify-domain`, `/api/status`, `/api/config`. Mutasyonlarda origin kontrolü var. |
+| `worker/dns/proxy.ts` | DoH proxy. Sorguyu doğrular, upstream'e `fetch()` yapar, yanıtı doğrular. Zaman aşımı 8 sn. |
+| `worker/dns/providers.ts` | Upstream URL üretimi ve `validateEndpoint`. Yalnızca public HTTPS hostname kabul eder, IP literal ve 443 dışı port yasak. |
+| `worker/dns/wire.ts` | DNS wire format ayrıştırma, `makeQuery`. |
+| `worker/dns/ddr-checker.ts` | `_dns.<host>` SVCB sorgusu. İş `cloudflare-dns.com` üzerinden yapılır. SVCB kuralı: `alpn` içinde `h3`, port 443, `dohpath=/dns-query{?dns}`. |
+| `worker/dns/connection.ts` | Tarayıcı DNS yolunu doğrulayan, 10 sn geçerli rastgele `*.dns-check.<domain>` probe'u. |
+| `worker/auth/service.ts`, `object.ts` | PIN, oturum, rate limit (`diagnostic`: 12/dk, `verify-domain`: 120/dk), config kaydı. |
+| `worker/config.ts` | KV config önbelleği (15 sn). |
+| `shared/contracts.ts`, `shared/validation.ts` | `Config` tipi ve sunucu tarafı doğrulama. Bilinmeyen alanları atar. |
+| `src/components/Dashboard.tsx`, `ConnectionStatus.tsx`, `src/hooks/useStatus.ts` | Dashboard. Durum 1 sn aralıkla yoklanır. |
+| `wrangler.jsonc` | Bindings: KV `CONFIG`, DO `AUTH`, `ASSETS`. `compatibility_date: 2026-10-24`. |
+| `tests/*.test.ts` (8 dosya), `tests/browser/app.spec.ts` | Vitest ve Playwright (msedge). |
+
+## 3. Mevcut akış
+
+1. Android, `_dns.<host>` SVCB kaydını bulur (`alpn=h3`, `dohpath=/dns-query{?dns}`) ve Cloudflare edge'ine HTTP/3 ile bağlanır.
+2. Worker `/dns-query` isteğini alır, GET/POST ve boyutu doğrular. `question()` ve `validateRecords()` ile ayrıştırır.
+3. `endpointFor()` upstream URL'sini üretir (NextDNS, AdGuard, Control D veya custom).
+4. `fetch(upstream)` yapar. Yönlendirme kapalıdır, zaman aşımı 8 sn'dir. Yanıtın content-type değeri, ID'si ve soru kimliği kontrol edilir.
+5. Yanıt istemciye döner.
+
+`/api/test` bugün `example.com` A sorgusunu aynı `handleDns` yolundan gönderir. Sonuç olarak yalnızca `ok`, `latencyMs` ve `provider` döner. Kimlik doğrulama ve rate limit uygulanır.
+
+## 4. Feature A: IPv4/IPv6 fizibilite matrisi
+
+Kodda IP ailesiyle ilgili hiçbir şey yok (`fetch` dışında soket kullanılmıyor). Platform iddiaları (Workers dokümantasyonu) için henüz kaynak taraması yapmadım. Phase 2 öncesinde doğrulanması gereken bir noktadır.
+
+| Yol | IPv4-only | IPv6-only | Dual-stack | Zorlama mekanizması | Sınırlamalar |
+|---|---|---|---|---|---|
+| İstemci → Cloudflare | Worker kodundan kontrol edilemez | Aynı | Varsayılan davranış | Yok. Aile; istemcinin ağ yığını, DNS'te yayınlanan A/AAAA kayıtları ve Cloudflare edge'i tarafından belirlenir. Worker, bağlantı kurulduktan sonra yalnızca `cf-connecting-ip` ile hangi ailenin kullanıldığını görür. | Custom domain'in A/AAAA kayıtları Cloudflare tarafında yönetilir. Cloudflare'in kendi IPv6 ayarı olduğu bilinir ama bu hesap/zone ayarıdır, Worker kodu değiştirmez ve repoda yok. |
+| Worker → upstream | Desteklenmiyor | Desteklenmiyor | Tek mod (platform seçer) | `fetch()` API'sinde aile seçeneği yok. Bağlantıyı Cloudflare runtime'ı kurar. | Tercih, adres seçimi ve gerçek zorlama ayrı kavramlardır. Üçü de burada yok. Bağlantı sonrası doğrulama için de uygulama katmanında hangi uzak IP'ye bağlanıldığını gösteren bir API yok. |
+| Upstream hostname çözümleme | Desteklenmiyor | Desteklenmiyor | Platform çözer | Uygulama çözümlemeyi yapmıyor. Hostname'i `fetch` içinde çözer. IP literal URL'ler `validateEndpoint` tarafından zaten yasak, ayrıca TLS hostname doğrulaması için hostname gerekir. | DoH ile A/AAAA sorgulanıp IP'ye bağlanmaya çalışmak TLS/SNI ve `fetch` kuralları yüzünden güvenilir değil. |
+| DDR/SVCB keşfi | Ayrı bir mod yok | Ayrı bir mod yok | Mevcut | SVCB'de `ipv4hint` (4) ve `ipv6hint` (6) parametreleri var. Bunlar yalnızca ipucudur, zorlama değildir. | `parseSvcb` bugün 1,2,3,4,6,7 numaralı parametreleri `mandatory` içinde kabul eder. Aile kısıtlaması için SVCB'ye güvenmek Android'de garanti vermez. `alpn` (h3/h2) IP ailesiyle ilgisizdir. |
+
+**Sonuç:** Feature A, mevcut mimaride "zorlanan" bir ayar olarak güvenilir biçimde uygulanamaz. UI'da toggle koymak, sistemin uygulayamayacağı bir kısıtı ima eder. Bu, görevin kendi kuralına aykırıdır.
+
+## 5. Feature B: Tanılama fizibilite matrisi
+
+| Tanılama | Yürütme yeri | Fizibilite | Neyi kanıtlar | Sınırlamalar |
+|---|---|---|---|---|
+| Worker reachability | Tarayıcı (dashboard, aynı origin) + Worker | Yapılabilir | `/api/*` çağrısı kimlik doğrulamalı yanıt dönüyor, yani Worker ve DO çalışıyor. HTTP 200 tek başına yeterli değil. KV config okunabiliyor ve DO yanıt veriyor olmalı. | Tarayıcı, kullanıcının o anki origin'ini test eder. Özel domain'i test etmek için sayfa o domain'den açılmış olmalı. |
+| Custom domain erişimi | Tarayıcı + Worker | Kısmi | Tarayıcı `https://<domain>/api/setup-state` çağırırsa DNS, TLS ve yönlendirme uçtan uca doğrulanır. Başarısızlıkta tarayıcı DNS/TLS/yönlendirme hatalarını ayırt edemez (`fetch` hatası genel olur, CORS de engeller). | Worker kendi domain'ine DNS yayılımını bağımsız kanıtlayamaz. `domainReady()` gibi hostname karşılaştırması kanıt değildir. Mevcut SVCB kontrolü bir DoH (Cloudflare) üzerinden yapılır, istemcinin gördüğünü kanıtlamaz. |
+| DoH isteği ve yanıtı | Worker | Yapılabilir | Sabit sorgu ile `handleDns` yolu uçtan uca çalışır: yöntem, content-type, ID eşleşmesi, soru kimliği, kayıt bütünlüğü, RCODE. | `/api/test` bugün bunu yapıyor ama yalnızca RCODE=0 ile `ok` döner, hata türlerini ayırmaz. `makeQuery` rastgele ID kullanmıyor (sıfır ID), ID eşleşmesi bu yüzden zayıf bir kanıttır. |
+| Upstream resolver | Worker | Yapılabilir | Yapılandırılmış upstream'in sorguyu kabul edip geçerli yanıt döndürdüğü. Aktarım hatası, HTTP durumu, DNS RCODE ve zaman aşımı ayrı raporlanabilir. | `proxy.ts` tüm hataları tek "502" mesajına çeviriyor. Ayrıştırmak için tanılamaya özel, `/dns-query` davranışını değiştirmeyen bir yol gerekir. |
+| IPv4/IPv6 taşıma | Yok | Desteklenmiyor / INCONCLUSIVE | Hiçbir şey. | Worker'dan giden bağlantıda aile seçilemiyor. İstemci → Cloudflare tarafında yalnızca `cf-connecting-ip` ile "bu istek hangi aileyle geldi" gözlemlenebilir (bu zaten gerçek bir bilgi). Bağımsız IPv4/IPv6 testi için ayrı altyapı gerekir (ör. yalnızca A veya yalnızca AAAA kaydı olan iki test hostname'i). |
+
+## 6. Güvenlik bulguları
+
+- `/dns-query` açık ve CORS `*`. Bu DDR için zorunlu, dokunmayacağım.
+- Tanılama uç noktaları mevcut `AUTH` oturumunu kullanmalı. `/api/test` zaten `call('diagnostic')` ile oturum ve rate limit (12/dk) uyguluyor.
+- `/api/test` gövdesindeki `config` alanı `validateConfig` ve `endpointFor`/`validateEndpoint` ile doğrulanıyor. Yani zaten sunucu tarafı kısıtlı, ama kayıtlı yapılandırma yerine istemcinin gönderdiği taslak config'e karşı çalışıyor. Yeni tanılama kayıtlı yapılandırmayı kullanmalı, kullanıcı URL'si almamalı.
+- Sabit sorgu kullanılacak. Kullanıcıdan sorgu adı alınmayacak. Böylece açık proxy riski doğmaz.
+- Yanıtta ham DNS verisi, upstream URL'sindeki NextDNS profil kimliği ve token yer almamalı.
+- Dashboard'ta zaten 1 sn aralıkla durum yoklaması var. Tanılama yalnızca butonla çalışmalı, çakışan çalıştırmalar engellenmeli. Hem istemcide hem Worker'da ayrı alt istek zaman aşımları olmalı. Tek çalıştırmada 3 alt istek yeterli.
+- Workers ücretsiz planında bir isteğin alt istek (subrequest) sayısı sınırlı. Küçük bir tanılama bunun içinde kalır. Maliyet etkisi önemsizdir.
+
+## 7. Baseline sonuçları
+
+| Komut | Sonuç |
+|---|---|
+| `npm ci` | Başarılı (önceki adımda) |
+| `npm run check` | Başarılı. Format, typecheck, 8 test dosyası ve 48 test geçti, build tamamlandı. |
+| `npx tsc --noEmit` | Çıkış kodu 0 (şimdi yeniden çalıştırıldı) |
+| `npx prettier --check .` | Tüm dosyalar uyumlu (şimdi yeniden çalıştırıldı) |
+| `npm run test:e2e` (Playwright) | **Çalıştırmadım.** Edge tarayıcısı (`channel: msedge`) ve yerel `wrangler dev` gerektirir. Onay verirsen çalıştırırım. |
+
+Repoda ayrı bir lint betiği yok. Biçim denetimi için Prettier kullanılıyor.
+
+## 8. Önerilen uygulama planı (en küçük bakımı kolay set)
+
+**Feature A (öneri: ağ kısıtlaması eklenmez):**
+- Salt okunur bir bilgi göster: mevcut isteğin IP ailesi (`cf-connecting-ip` IPv4 mü IPv6 mı). Bu, doğru olan tek A yolu ve "istemci → Cloudflare" için bilgilendiricidir. Zorlama değildir.
+- README'ye "IP ailesi kontrolü" bölümü ekle. Sınırları ve Cloudflare tarafı ayarlarını (zone IPv6 ayarı, DNS kayıtları) anlat.
+- `ipv4-only` / `ipv6-only` yapılandırma alanı eklenmez.
+
+**Feature B:**
+- `shared/contracts.ts`: `DiagnosticStatus` (`PASS|FAIL|UNSUPPORTED|INCONCLUSIVE`), `DiagnosticCheck` (id, status, süre, kısa açıklama, çözüm önerisi) ve `DiagnosticReport` tipleri.
+- `worker/dns/diagnostics.ts` (yeni): kayıtlı yapılandırma ve sabit sorgu ile (a) Worker/KV/DO sağlığı, (b) DoH yolu, (c) upstream sonucu. Hataları ayrı sınıflar: aktarım, HTTP durumu, content-type, DNS ayrıştırma, RCODE, zaman aşımı. Alt istek başına zaman aşımı 5 sn.
+- `worker/api/router.ts`: oturum korumalı `POST /api/diagnostics`. Var olan `diagnostic` rate limit'ini kullanır. Aynı anda tek çalıştırma.
+- `src/components/Dashboard.tsx` ve yeni `Diagnostics.tsx`: "Test Connectivity" butonu, yalnızca tıklanınca çalışır, çalışırken devre dışı. Tarayıcı tarafı custom-domain kontrolü (`/api/setup-state` çağrısı) burada yapılır. IPv4/IPv6 satırı "UNSUPPORTED" gösterir ve gerekçesini açıklar.
+- `README.md`: tanılama davranışı, sınırlar, sorun giderme.
+
+## 9. Kabul kriterleri
+
+- **Doğrulama/config:** bilinmeyen alan reddedilir veya atılır, mevcut yapılandırma değişmez (regresyon testi).
+- **Yetkilendirme:** oturumsuz çağrı 401, rate limit aşımı 429.
+- **Tanılama başarısı/başarısızlığı:** sahte `fetch` ile PASS, HTTP hatası, yanlış content-type, bozuk DNS gövdesi, ID uyuşmazlığı, RCODE≠0 ve zaman aşımı için ayrı testler.
+- **Gizlilik:** yanıtta ham DNS verisi, profil ID'si veya upstream URL'si yok.
+- **Regresyon:** mevcut `/dns-query` ve DDR/SVCB testleri aynen geçer.
+- **IPv4/IPv6:** UI "UNSUPPORTED" gösterir. Hiçbir ayar zorlama ima etmez.
+- **Komutlar:** `npm run check`, ve onay verirsen `npm run test:e2e`.
+
+## 10. Onay gerektiren kararlar
+
+1. **Feature A:** Zorlanan IPv4/IPv6 modları yerine yalnızca bilgilendirme (isteğin IP ailesi) ve dokümantasyon mu yapalım? Başka bir seçenek, ayrı altyapıyla (yalnızca A veya yalnızca AAAA kaydı olan test hostname'leri) ölçüm yapmak. Bu ek altyapı ve maliyet getirir ve "Worker → upstream" yolunu yine de test etmez.
+2. **Feature B kapsamı:** Worker tarafı üç kontrol (sağlık, DoH, upstream) ve tarayıcı tarafı domain kontrolü uygun mu?
+3. **Config alanı:** Yeni bir kalıcı ayar eklemiyorum. Bu uygun mu?
+4. **Platform doğrulaması:** Phase 2 öncesinde Workers `fetch()` için IP ailesi seçeneği olmadığını resmi dokümantasyondan kaynakla teyit etmemi ister misin?
+5. **Playwright:** E2E testlerini şimdi baseline için çalıştırayım mı?
+6. **Branch:** Çalışmaya `feature/my-changes` üzerinde devam edeyim mi?
+
+## Önerilen değişiklikler (özet)
+
+- `shared/contracts.ts`: tanılama tipleri.
+- `worker/dns/diagnostics.ts` (yeni): sabit sorgulu, zaman aşımlı, hata ayırt eden kontroller.
+- `worker/api/router.ts`: `POST /api/diagnostics` (oturumlu, rate limitli).
+- `src/components/Diagnostics.tsx` (yeni) ve `Dashboard.tsx`: "Test Connectivity" arayüzü.
+- `tests/diagnostics.test.ts` (yeni) ve gerekirse `tests/browser/app.spec.ts`.
+- `README.md`: ağ sınırları ve tanılama.
+- IPv4/IPv6 zorlama ayarı eklenmez.
+
+Phase 2 için açık onayını bekliyorum. Kapsamı kısmen onaylarsan yalnızca onaylanan kısmı yaparım.
+
+
+=====================================================================
+PROMPT 2 (user): Phase 2 approval
+=====================================================================
+
+# Phase 2 Approval: Implement Reliable Connectivity Diagnostics and Informational IP-Family Reporting
+
+Proceed with Phase 2 based on the architecture analysis. Implement the approved scope below with a strong focus on diagnostic correctness, security, and regression prevention.
+
+**This is implementation approval for the defined scope only. It is not authorization to deploy or modify live Cloudflare resources.**
+
+## 1. Mandatory Pre-Implementation Steps
+
+Before changing any files:
+
+1. Run the existing Playwright E2E suite as a baseline if the required environment is available. Report the exact command, result, and any environmental limitation. Do not claim the suite passed if it was not actually executed.
+2. Verify relevant Cloudflare Workers networking limitations against official Cloudflare documentation. Distinguish documented platform limitations from assumptions or unverified behavior.
+3. Confirm the current Git branch and working-tree status. Preserve all existing user changes and avoid unrelated modifications.
+4. Review the existing DNS proxy, upstream-provider selection, authentication, rate limiting, configuration validation, and diagnostic code paths before deciding where changes belong.
+
+If a required verification cannot be completed, explicitly report that limitation. Do not invent evidence or silently treat an unverified assumption as a confirmed platform constraint.
+
+## 2. IPv4/IPv6: Informational Only
+
+Do not implement IPv4-only or IPv6-only enforcement toggles in this phase unless official documentation establishes a safe, supported method within the existing architecture.
+
+Instead:
+
+- If reliable, expose the client IP family observed by the Worker using trusted Cloudflare request metadata, such as `cf-connecting-ip`.
+- Derive the family from the observed address safely. Handle missing or invalid metadata without guessing.
+- Label the result clearly as **observed client-to-Cloudflare IP family**, not as an IPv4/IPv6 capability or enforcement test.
+- Do not imply that this observation proves the IP family used by Cloudflare-to-upstream traffic.
+- If the family cannot be determined, report `INCONCLUSIVE` or `UNSUPPORTED`, not `PASS`.
+- Document that HTTP versions such as HTTP/2 and HTTP/3 are not equivalent to IPv4/IPv6 selection.
+- Do not add infrastructure, external services, persistent configuration fields, or new paid dependencies for this feature.
+
+The diagnostic UI must explicitly state that actual IPv4-only/IPv6-only transport enforcement is not tested and is unsupported by the current implementation, unless the official documentation and a verified implementation establish otherwise.
+
+## 3. Connectivity Diagnostics: Required Checks
+
+Implement an on-demand connectivity diagnostic that works with the existing dashboard and deployed custom domain.
+
+Include these checks where technically verifiable:
+
+### A. Application and Worker health
+
+- Verify that the authenticated diagnostic request reaches the intended application.
+- Check KV and Durable Object dependencies only to the extent that the existing architecture provides a safe, meaningful way to verify them.
+- Do not report KV or Durable Object health as `PASS` merely because the Worker returned HTTP 200.
+- If a dependency cannot be independently verified, return `INCONCLUSIVE` and explain why.
+
+### B. End-to-end DoH query
+
+- Execute an actual DNS query through the existing DNS handling path, preferably by reusing the same core logic used by `/dns-query`.
+- Use a fixed, safe diagnostic hostname and query type. Do not accept arbitrary query destinations from the browser.
+- Validate the DNS response, not just the HTTP status.
+- Verify that the response is a valid DNS message, has the expected transaction ID, corresponds to the expected question, and has an acceptable DNS response code.
+- Distinguish DNS-level failures from HTTP-level failures.
+- Do not change normal `/dns-query` behavior merely to accommodate diagnostics.
+
+### C. Saved upstream resolver / NextDNS check
+
+- Use the currently saved, validated configuration and the existing provider-selection logic.
+- Do not accept an arbitrary upstream URL, hostname, NextDNS endpoint, or provider configuration from the browser for this diagnostic.
+- Do not introduce a diagnostic endpoint that can be used as an open proxy or SSRF primitive.
+- Exercise the actual configured upstream resolver path and validate its response.
+- Where the architecture allows, distinguish:
+  - connection or fetch failure;
+  - timeout;
+  - non-success HTTP status;
+  - unexpected content type;
+  - malformed DNS response;
+  - transaction-ID or question mismatch;
+  - non-success DNS response code.
+- If a failure cannot be classified reliably, report a generic but truthful failure rather than guessing its cause.
+
+Do not expose the full upstream URL, NextDNS profile ID, raw DNS packet, sensitive configuration, or unnecessary upstream response details in the diagnostic report or logs.
+
+### D. Custom-domain origin check
+
+- Perform a browser-side check against the current dashboard origin using a safe, same-origin endpoint such as the existing setup-state endpoint, if appropriate.
+- Explain that this confirms reachability from the current browser session, not independent proof of public DNS propagation or universal reachability.
+- Do not claim to distinguish DNS, TLS, and routing failures when browser security restrictions make that distinction impossible.
+- Do not send diagnostic requests to arbitrary user-supplied domains.
+
+### E. IPv4/IPv6 status
+
+Include a separate result explaining whether IP-family enforcement was actually tested. Use `UNSUPPORTED` or `INCONCLUSIVE` as appropriate. Never show `PASS` for a test that was not performed.
+
+## 4. DNS Transaction ID: Explicit Requirement
+
+The analysis identified that `makeQuery` currently uses a zero DNS transaction ID. Investigate this carefully.
+
+For diagnostic queries:
+
+1. Generate a non-zero, unpredictable 16-bit DNS transaction ID for each test query, using an appropriate secure random source supported by the runtime.
+2. Ensure the query contains that ID.
+3. Validate that the upstream response contains exactly the same ID.
+4. Validate the response question against the expected diagnostic question.
+5. Add deterministic tests for a valid matching response, an incorrect transaction ID, and a mismatched question.
+6. Keep this behavior scoped to diagnostics unless a separate, tested change is necessary and explicitly justified.
+
+Do not blindly change `makeQuery` globally. First inspect its callers and existing protocol assumptions. Preserve normal DNS proxy compatibility and add regression tests for the existing `/dns-query` path.
+
+## 5. API, Authentication, and Rate Limiting
+
+Implement an authenticated `POST /api/diagnostics` endpoint, or an equivalent route consistent with the existing architecture.
+
+Requirements:
+
+- Reuse the current authentication and session mechanisms.
+- Reuse the existing diagnostic rate-limiting policy where appropriate.
+- Verify that unauthenticated requests are rejected.
+- Verify that rate limits are enforced.
+- Prevent concurrent diagnostic runs where necessary to avoid unnecessary upstream traffic.
+- Use only the saved, validated configuration.
+- Apply bounded timeouts to each network operation and to the overall diagnostic run.
+- Do not weaken origin validation or mutation protections.
+- Do not change the intentionally public `/dns-query` endpoint or its required CORS behavior.
+
+Use the smallest maintainable implementation. Avoid unnecessary new abstractions, dependencies, or persistent configuration fields.
+
+## 6. Truthful, Structured Results
+
+Define a consistent response model using the repository's existing type and validation conventions.
+
+Each diagnostic check should include, where applicable:
+
+- a stable check identifier;
+- a status such as `PASS`, `FAIL`, `UNSUPPORTED`, or `INCONCLUSIVE`;
+- a measured duration when available;
+- a concise explanation;
+- a practical remediation suggestion when the failure has a known remedy.
+
+Rules:
+
+- `PASS` means the check was actually executed and its stated success conditions were verified.
+- `FAIL` means an executed check failed a known condition.
+- `UNSUPPORTED` means the current architecture cannot perform the requested test.
+- `INCONCLUSIVE` means the available evidence is insufficient to determine the result.
+- Never convert a timeout, skipped check, missing metadata, malformed response, or unperformed test into `PASS`.
+- A successful HTTP response alone must never establish that a DNS query or upstream resolver is healthy.
+- Do not leak secrets, raw DNS packets, or upstream endpoint URLs through error messages.
+
+## 7. Dashboard and Documentation
+
+Add an on-demand **Test Connectivity** action to the dashboard.
+
+- Show individual check results, not just one overall green/red indicator.
+- Disable the action while a diagnostic run is in progress.
+- Show loading, success, partial failure, and error states clearly.
+- Avoid automatic one-second diagnostic polling. Run the potentially networked diagnostic only when the user explicitly starts it.
+- If the existing status hook continues polling for ordinary status information, do not unnecessarily expand its workload.
+- Display observed client IP family separately from IPv4/IPv6 enforcement capability.
+- Make unsupported and inconclusive results visually distinct from successful checks.
+
+Update the README to document the checks, their limitations, privacy considerations, and the distinction between browser-to-Worker, Worker-to-upstream, and IP-family testing.
+
+## 8. Required Tests
+
+Add deterministic tests covering at least:
+
+- successful end-to-end DNS diagnostics;
+- successful upstream response using the saved configuration;
+- rejection of unauthenticated requests;
+- rate limiting;
+- HTTP error responses;
+- unexpected content type;
+- malformed DNS responses;
+- incorrect DNS transaction ID;
+- mismatched DNS question;
+- non-success DNS response code;
+- upstream fetch failure;
+- timeout behavior;
+- missing or invalid client IP metadata;
+- correct `UNSUPPORTED` or `INCONCLUSIVE` reporting for unperformed IPv4/IPv6 enforcement tests;
+- sanitization of diagnostic output so secrets, NextDNS profile IDs, full upstream URLs, and raw DNS packets are not exposed;
+- regression behavior for the existing `/dns-query`, provider selection, and DDR/SVCB functionality.
+
+Mock external network dependencies in unit tests wherever practical. Do not rely on a real NextDNS account or external resolver availability for deterministic tests.
+
+## 9. Final Verification and Security Review
+
+After implementation:
+
+1. Run `npm run check`.
+2. Run the relevant unit tests and the production build.
+3. Run the Playwright E2E suite if the environment supports it.
+4. Report every command and its actual exit status. Clearly identify skipped tests and environmental limitations.
+5. Review the complete Git diff for unintended changes, regressions, secret exposure, unsafe URL handling, and misleading diagnostic results.
+6. Confirm that normal DNS proxy behavior remains compatible.
+7. Confirm that no deployment, live DNS modification, or Cloudflare account resource modification occurred.
+8. Report changed files, key design decisions, test results, remaining limitations, and any unresolved risks.
+
+Do not claim completion until the implementation and checks have actually finished.
+
+If an important requirement cannot be implemented safely or verified, stop and explain the issue rather than silently substituting a weaker test.
+
+Proceed with Phase 2 under these constraints. Do not deploy.
+
+=====================================================================
+RESPONSE 2 (AWS Kiro AI): Phase 2 implementation report (original in Turkish)
+=====================================================================
+
+# Phase 2 raporu: Bağlantı tanılama ve IP ailesi bilgisi
+
+Onaylanan kapsam uygulandı. Unit testlerin tamamı ve build geçti. Yeni E2E testi de geçti. E2E paketinde baştan beri başarısız olan 3 test hâlâ başarısız; benim değişikliklerimden kaynaklanmıyorlar. Değişiklikler `feature/my-changes` branch'inde ve commit edilmedi. Deploy yapılmadı, DNS kayıtlarına ve Cloudflare kaynaklarına dokunulmadı.
+
+## Uygulama öncesi kontroller
+
+**Branch ve çalışma dizini:** `feature/my-changes` branch'indeyiz ve başlangıçta değişiklik yoktu.
+
+**Baseline E2E (`npx playwright test`):** 2 test geçti, 3 test başarısız oldu. Bu hatalar değişikliklerden önce de vardı:
+- `minimal setup…` testi "Your website is running" başlığını arıyor, ama UI'da "Loophole is running" yazıyor. Test ile UI uyuşmuyor.
+- `requires fresh browser DNS…` ve `management API requires authentication…` testleri, ilk testin kurduğu duruma bağlı. İlk test durduğu için bunlar da başarısız oluyor.
+
+Bu testleri düzeltmedim, kapsam dışıydı.
+
+**Cloudflare dokümantasyonu (resmi):**
+- *HTTP headers* sayfası: `CF-Connecting-IP`, istemcinin Cloudflare'e bağlandığı IP adresidir. Pseudo IPv4 "Overwrite Headers" modundaysa gerçek IPv6 adresi `CF-Connecting-IPv6` başlığında gelir. Kod bu iki durumu da ele alıyor.
+- *Request / fetch* sayfaları: `cf` seçenekleri arasında IP ailesi seçen bir seçenek yok. `resolveOverride` yalnızca kendi zone'undaki hostname'ler için çalışıyor.
+- *TCP sockets* sayfası: `connect()` için de IP ailesi seçeneği yok.
+- *Limits* sayfası: ücretsiz planda istek başına 50 subrequest ve aynı anda bekleyen en fazla 6 bağlantı var. Bir tanılama çalıştırması 2 upstream isteği ve 1 KV okuması yapıyor, bu sınırların içinde kalıyor.
+
+Belgelenmiş olan, bu seçeneklerin dokümanlarda bulunmadığıdır. "Seçenek kesinlikle yoktur" iddiası değildir. Runtime'ın kaynak koduna bakmadım.
+
+## Değişen dosyalar
+
+| Dosya | Değişiklik |
+|---|---|
+| `worker/dns/diagnostics.ts` (yeni) | Rastgele ve sıfır olmayan transaction ID, yanıt doğrulama, upstream/DoH/KV kontrolleri, IP ailesi tespiti |
+| `worker/api/router.ts` | `POST /api/diagnostics` endpoint'i. İstek gövdesi yok sayılıyor. |
+| `worker/auth/service.ts`, `object.ts` | `startDiagnostic` / `endDiagnostic`: oturum kontrolü, mevcut `diagnostic` rate limit'i (12/dk), aynı anda tek çalıştırma için 30 sn'lik kilit |
+| `shared/contracts.ts` | `DiagnosticStatus`, `DiagnosticCheck`, `DiagnosticReport` tipleri |
+| `src/lib/diagnostics.ts` (yeni) | Tarayıcıdan aynı origin'e özel domain kontrolü |
+| `src/components/Diagnostics.tsx` (yeni), `Dashboard.tsx`, `index.css` | **Test connectivity** butonu ve sonuç listesi |
+| `README.md` | Kontroller, sınırlar, gizlilik, IPv4/IPv6 açıklaması |
+| `tests/diagnostics.test.ts`, `diagnostics-api.test.ts`, `origin.test.ts` (yeni), `tests/browser/app.spec.ts` | Testler |
+
+`proxy.ts`, `wire.ts` (`makeQuery`), `index.ts`, `/api/test` ve `/dns-query` hiç değişmedi.
+
+## Tanılama davranışı
+
+| Kontrol | Nerede çalışır | PASS ne demek | Diğer sonuçlar |
+|---|---|---|---|
+| Worker and Durable Object | Worker | Durable Object oturumu doğruladı ve kayıtlı ayarları döndürdü | Oturum yoksa 401, rate limit aşılınca 429, başka bir test çalışıyorsa 409 |
+| Settings in Workers KV | Worker | KV'deki ayarlar geçerli ve revision Durable Object'teki ile aynı | Ayar yok, geçersiz ya da okunamıyorsa FAIL. Eski revision ya da zaman aşımı INCONCLUSIVE. |
+| Custom domain from this browser | Tarayıcı | Kayıtlı domain'de açılmış dashboard'dan `/api/setup-state` geçerli yanıt döndü | Ağ hatası FAIL olur ve DNS/TLS/yönlendirme ayrımı yapılmaz. Başka bir origin'de açıldıysa ya da domain kayıtlı değilse INCONCLUSIVE. |
+| End-to-end DoH query | Worker (`handleDns`) | ID, soru ve kayıt yapısı eşleşiyor, RCODE NOERROR | `proxy-error`, `dns-rcode`, `timeout` |
+| Saved upstream resolver | Worker | Kayıtlı resolver'a doğrudan gönderilen sorguya geçerli, eşleşen NOERROR yanıtı geldi | `transport`, `timeout`, `http-status`, `http-version`, `redirect`, `content-type`, `malformed-dns`, `id-mismatch`, `question-mismatch`, `dns-rcode`, `config` |
+| Observed client-to-Cloudflare IP family | Worker | IP ailesi Cloudflare başlıklarından belirlenebildi. Bu bir gözlemdir, test değildir. | Başlık eksik, geçersiz ya da IPv4-mapped bir adresse INCONCLUSIVE |
+| IPv4-only / IPv6-only enforcement | Yapılmıyor | Hiçbir zaman PASS olmaz | Her zaman UNSUPPORTED ("Not tested") |
+
+Tasarım kararları:
+- Test sorgusu her zaman `example.com`, tip A. Her çalıştırmada yeni bir rastgele 16-bit ID üretiliyor (`crypto.getRandomValues`, sıfır olamaz). Bu ID yalnızca tanılamada kullanılıyor, `makeQuery` sıfır ID ile çalışmaya devam ediyor.
+- Her ağ işleminin zaman aşımı 8 sn. Ağ kontrolleri paralel çalışıyor.
+- Tanılama yalnızca butona basılınca çalışıyor, otomatik yoklama yok.
+
+## Güvenlik incelemesi
+
+- Tarayıcıdan gelen `config` ve URL değerleri yok sayılıyor. Testle doğrulandı: saldırganın verdiği URL'ye hiç istek gitmiyor. Bu yüzden endpoint açık proxy ya da SSRF için kullanılamaz.
+- Owner kurulmadan önce endpoint 401 döndürüyor. Oturum gerekiyor ve origin kontrolü olduğu gibi duruyor.
+- Yanıtta upstream URL'si, NextDNS profil ID'si, cihaz adı, istemci IP'si ya da DNS paketi yer almıyor. Testle doğrulandı. Hiçbir şey loglanmıyor.
+- Eşzamanlı çalıştırmalar Durable Object'teki bir kilitle engelleniyor. Durable Object çağrıları sıraya koyduğu için kilidi kontrol etmek ve almak atomik oluyor.
+
+## Test sonuçları
+
+| Komut | Sonuç |
+|---|---|
+| `npm run check` | Çıkış kodu 0. Prettier temiz, tsc temiz, 11 test dosyasında 87 test geçti (önceden 48), build başarılı. |
+| `npx playwright test --reporter=list` | 3 geçti (yeni connectivity testi dahil), 3 başarısız. Başarısız olanlar baseline'daki 3 testin aynısı. |
+| `git diff --check` | Çıkış kodu 0 |
+
+Mevcut E2E testi `real upstream DNS works…` gerçek ağa çıkıyor. Bu repoda önceden vardı. Yeni unit testlerin hepsi mock kullanıyor.
+
+## Kalan sınırlamalar
+
+- IPv4/IPv6 kullanımı ne zorlanabiliyor ne de doğrulanabiliyor. Yalnızca dashboard'u açan tarayıcının Cloudflare'e hangi aileyle bağlandığı gözlemleniyor.
+- Custom domain kontrolü yalnızca bu tarayıcının erişimini gösteriyor. Genel DNS yayılımını kanıtlamıyor.
+- KV kontrolü yalnızca isteği karşılayan Cloudflare lokasyonunu yansıtıyor.
+- DoH kontrolü, `/dns-query` gibi KV'deki config'i değil Durable Object'teki kayıtlı config'i kullanıyor. Aradaki farkı KV kontrolü raporluyor.
+- `proxy.ts` iç zaman aşımı nedeniyle DoH kontrolünün arka plandaki isteği en fazla 8 sn daha sürebilir.
+
+## Kendi domain'inle manuel doğrulama (deploy'dan sonra)
+
+1. Dashboard'u `https://<senin-domain>` adresinden aç, PIN ile giriş yap ve **Test connectivity**'ye bas.
+2. NextDNS ile çalışırken beklenen sonuç: KV, DoH, upstream ve custom domain kontrolleri PASS, enforcement UNSUPPORTED.
+3. Dashboard'u `*.workers.dev` adresinden açarsan custom domain kontrolü INCONCLUSIVE olmalı.
+4. Hata yolunu denemek için NextDNS'te geçersiz bir profil ID'si kaydet. Upstream kontrolünde `http-status` ya da `dns-rcode` görünmeli.
+5. Butona arka arkaya basarsan tek çalıştırma olmalı. Dakikada 12 çalıştırmadan sonra 429 dönmeli.
+
+Commit atıp `ondern/loophole`'a push etmemi ve `eyalm2000/loophole` için PR açmamı ister misin? Baseline'daki 3 E2E hatasını ayrı bir değişiklik olarak düzeltebilirim, ama bu PR'ın kapsamı dışında kalır.
+
+=====================================================================
+PROMPT 3 (user): Read-only verification request
+=====================================================================
+
+Before I authorize a pull request, perform a focused, read-only verification of the Phase 2 implementation.
+
+**Do not modify files, create commits, push branches, open a pull request, deploy, or change any Cloudflare resources during this review.** I want evidence from the actual code and test results, not just a summary of the intended behavior.
+
+### 1. Verify the real DNS and upstream paths
+
+Inspect the implementation and demonstrate the following:
+
+- The end-to-end DoH diagnostic executes a real DNS query through the intended existing DNS handling path.
+- The saved upstream resolver diagnostic uses the currently saved and validated configuration, without accepting arbitrary URLs or configuration from the request body.
+- The two checks independently validate their respective DNS responses.
+- The diagnostic DNS transaction ID is non-zero and unpredictable, and the response ID and question are validated.
+- The normal `/dns-query` behavior remains unchanged.
+
+Identify the relevant functions and files for each claim. If any check does not meet these requirements, explain the exact issue and propose the smallest safe correction without applying it.
+
+### 2. Verify configuration consistency
+
+The report states that the diagnostic DoH check uses the Durable Object's saved configuration, while the normal DNS proxy uses configuration from Workers KV.
+
+Inspect the configuration lifecycle and determine whether this difference can produce misleading results when KV and Durable Object revisions differ.
+
+Specifically:
+- Can the diagnostic report an end-to-end DoH success while the normal proxy uses a different configuration?
+- Does the KV revision check detect the relevant inconsistency reliably?
+- Can stale caches or concurrent configuration updates create a false `PASS`?
+- Are partial failures reported accurately?
+
+Do not assume that the existing revision check resolves every possible inconsistency. Explain what it proves and what it does not prove.
+
+### 3. Verify what a successful NextDNS test actually proves
+
+Inspect the upstream test and its response validation.
+
+Confirm whether a `PASS` proves that:
+- The configured upstream endpoint was reached.
+- A valid DNS response was received.
+- The transaction ID and DNS question matched.
+- The response code was `NOERROR`.
+
+Also explain explicitly that a successful `example.com` A query does not, by itself, prove that NextDNS filtering policies, account settings, or all other DNS record types work correctly.
+
+Check whether redirects are rejected and whether transport failures, HTTP errors, malformed DNS, timeouts, and non-success DNS response codes are classified truthfully.
+
+### 4. Review concurrency, timeout, and error handling
+
+Inspect the 30-second diagnostic lock and the 8-second network timeouts.
+
+Determine whether the lock is released correctly on every success and failure path, including unexpected exceptions. Check whether stale locks recover safely and whether concurrent requests can bypass the intended single-run restriction.
+
+Confirm that the total execution time is bounded and that timeouts or incomplete checks cannot produce `PASS`.
+
+### 5. Verify security and regression coverage
+
+Inspect the relevant tests and implementation for:
+
+- Authentication and rate limiting.
+- Rejection of arbitrary browser-supplied URLs and configuration.
+- Sanitization of NextDNS profile IDs, upstream URLs, raw DNS packets, and other sensitive information.
+- IPv4/IPv6 enforcement always returning `UNSUPPORTED` or `INCONCLUSIVE`, never `PASS` when untested.
+- Preservation of `/dns-query`, provider selection, and DDR/SVCB behavior.
+
+Confirm that the reported 87 unit tests and the new E2E test actually exercise the claimed behaviors. Identify any important behavior asserted only in the report but not adequately tested.
+
+### 6. Review the three pre-existing E2E failures
+
+Compare the baseline and current failure details. Confirm that the same three tests fail for the same reasons and that the new changes did not introduce additional failures.
+
+Do not expand this review into unrelated E2E test fixes.
+
+### 7. Final response format
+
+Return a concise engineering review containing:
+
+1. **PASS / FAIL / INCONCLUSIVE** for each of the five technical review areas above.
+2. File names and function names supporting each conclusion.
+3. Any remaining material risks or misleading diagnostic outcomes.
+4. Exact test commands and actual results, distinguishing executed tests from skipped tests.
+5. A clear recommendation: `READY FOR PR`, `READY AFTER FIXES`, or `NOT READY FOR PR`.
+
+If you find a material issue, do not fix it yet. Explain the issue and request approval for the smallest necessary change.
+
+Do not commit, push, open a pull request, or deploy. Wait for my explicit authorization.
+
+=====================================================================
+RESPONSE 3 (AWS Kiro AI): not available
+=====================================================================
+
+No response was produced for this prompt. The first tool call was
+cancelled before it ran, and the next prompt (Prompt 4) replaced this
+request with a broader review. Nothing is reconstructed here.
+
+
+=====================================================================
+PROMPT 4 (user): Comprehensive review and VPN compatibility investigation
+=====================================================================
+
+# Comprehensive Engineering Review and Optimization — Loophole
+
+## Mission
+
+Review the existing Phase 2 connectivity diagnostics implementation and investigate the reported [specific VPN application redacted] / Android Private DNS compatibility issue.
+
+The goal is to determine whether the current changes are safe to submit as a pull request, identify the most likely causes of the reported connectivity failure, and recommend or implement only evidence-based improvements after approval.
+
+Continue from the existing `feature/my-changes` branch.
+
+**Important: Do not open a pull request yet. First complete the review and investigation. Do not deploy or modify live Cloudflare resources.**
+
+## 1. Workflow and change-control requirements
+
+Start by checking:
+
+- Current branch and Git working-tree status.
+- The complete Phase 2 diff.
+- Existing project instructions and test commands.
+- Current implementation of DNS discovery, the Worker proxy, provider selection, diagnostics, authentication, and configuration storage.
+
+Preserve all existing work. Do not discard, overwrite, or reset user changes.
+
+During the initial review, make no source-code changes, commits, pushes, deployments, or live infrastructure modifications.
+
+If the review identifies a concrete defect, report the evidence and propose the smallest safe correction. Wait for explicit approval before editing the code.
+
+After approval, implement only the approved corrections, rerun the relevant tests, and report the final diff. Do not open a PR until I explicitly authorize it.
+
+## 2. Official documentation and protocol verification
+
+Review the relevant official sources and cite the specific pages used:
+
+- Android DNS-over-HTTP/3: https://security.googleblog.com/2022/07/dns-over-http3-in-android.html
+- Cloudflare IPv6 compatibility: https://developers.cloudflare.com/network/ipv6-compatibility/
+- Cloudflare Workers Fetch API: https://developers.cloudflare.com/workers/runtime-apis/fetch/
+- [specific VPN application redacted] DNS leak protection: [VPN vendor support URL redacted]
+- [specific VPN application redacted] custom DNS: [VPN vendor support URL redacted]
+
+Also inspect the relevant DNS standards for SVCB/HTTPS records, DNS-over-HTTPS, DDR, and ALPN where needed.
+
+Distinguish documented facts from assumptions. Do not infer that a feature is impossible merely because an option is absent from one documentation page.
+
+Verify the compatibility of the actual implementation with the relevant protocol requirements.
+
+## 3. Phase 2 diagnostic correctness
+
+Review the existing implementation and tests.
+
+### DNS query and response validation
+
+Confirm that the DoH diagnostic performs a real query through the intended existing DNS handling path.
+
+Confirm that the saved upstream resolver diagnostic independently sends a query to the currently configured and validated resolver.
+
+Verify that each test checks:
+
+- A non-zero, unpredictable DNS transaction ID.
+- The response transaction ID.
+- The expected DNS question.
+- DNS message structure and record validity.
+- HTTP status and content type.
+- DNS response code.
+- Timeout and transport failures.
+
+Inspect `makeQuery` and all its callers. Keep the new transaction-ID behavior scoped to diagnostics unless a separately justified change is approved. Preserve normal `/dns-query` compatibility.
+
+### Configuration consistency
+
+The previous report states that the diagnostic DoH check uses Durable Object configuration while the normal proxy uses Workers KV configuration.
+
+Determine whether these sources can diverge and whether the revision check catches relevant inconsistencies.
+
+Check for stale caches, concurrent updates, partial writes, and misleading success results.
+
+Explain precisely what each diagnostic proves. A successful diagnostic must not imply that the normal proxy is using the same effective configuration unless that has been established.
+
+### NextDNS semantics
+
+Confirm that the upstream test uses the saved configuration and cannot be redirected to arbitrary browser-supplied destinations.
+
+A successful `example.com` A query proves only that the tested resolver returned a valid response for that query. It does not establish that every NextDNS policy, account setting, filtering rule, or record type works correctly.
+
+Inspect redirects, timeouts, HTTP failures, content types, malformed responses, transaction-ID mismatches, question mismatches, and non-success DNS response codes.
+
+Never expose upstream URLs, NextDNS profile IDs, raw DNS packets, or unnecessary sensitive information.
+
+### API and concurrency security
+
+Verify:
+
+- Authentication and session enforcement.
+- Existing origin validation.
+- Diagnostic rate limiting.
+- Single-run locking and safe lock release.
+- Recovery from stale locks.
+- Bounded total execution time.
+- Rejection of arbitrary user-controlled URLs or configurations.
+- Correct `PASS`, `FAIL`, `UNSUPPORTED`, and `INCONCLUSIVE` semantics.
+
+A successful HTTP response alone must not establish that DNS is working.
+
+## 4. Investigate the [specific VPN application redacted] / Android Private DNS issue
+
+### Reported environment
+
+- Device: Google Pixel 9 Pro XL.
+- OS: Android 17 / GrapheneOS.
+- VPN: [specific VPN application redacted].
+- DNS: Android Private DNS using a custom domain connected to a Cloudflare Worker, forwarding queries to NextDNS.
+
+### Reported behavior
+
+The custom endpoint works without [specific VPN application redacted]. When [specific VPN application redacted] connects, internet access becomes unavailable. Replacing the custom hostname with the official NextDNS DNS-over-TLS hostname restores connectivity.
+
+The reporter suspects IPv6, but the root cause is unknown.
+
+**Do not treat IPv6 as the presumed root cause.**
+
+Investigate these independent hypotheses:
+
+1. IPv4/IPv6 connectivity, DNS address-family behavior, or routing.
+2. DDR discovery and SVCB record correctness.
+3. ALPN, DoH path, HTTP/3, QUIC, and transport compatibility.
+4. Android Private DNS behavior under the specific VPN configuration.
+5. [specific VPN application redacted] DNS leak protection, routing, or interactions with manually configured DNS.
+6. Cloudflare edge connectivity or custom-domain behavior.
+7. Worker-to-NextDNS upstream connectivity.
+8. DNS response validation, errors, or timeouts.
+9. Other issues supported by the actual implementation or test evidence.
+
+Do not assume that a successful VPN connection proves DNS works. Equally, do not assume that the VPN is overriding Private DNS without evidence.
+
+### Trace the actual request path
+
+Document the relevant path from discovery to resolution:
+
+1. Android discovers or selects the custom DNS endpoint.
+2. The device resolves the discovery and service records.
+3. The client establishes the advertised encrypted transport.
+4. Cloudflare receives the request.
+5. The Worker processes `/dns-query`.
+6. The Worker selects the configured upstream resolver.
+7. The upstream response is validated and returned.
+
+For each stage, identify what can be verified from the source code and what requires a real device or deployed environment.
+
+### Investigate IPv6 accurately
+
+Determine:
+
+- Whether the custom hostname has working A and AAAA records.
+- Whether Cloudflare IPv6 compatibility could affect client connectivity.
+- What the Worker can infer from trusted client-IP metadata.
+- Whether the Workers Fetch API offers a supported way to select the address family for upstream requests.
+- Whether any proposed IPv4-only or IPv6-only toggle would control real traffic or merely change DNS advertisements or displayed information.
+- Whether SVCB address hints are relevant and what they can and cannot guarantee.
+
+Clearly distinguish:
+
+- Client-to-Cloudflare address family.
+- Worker-to-upstream address family.
+- VPN routing and DNS policy.
+- DNS records and address-family hints.
+
+Do not change DNS records, Cloudflare settings, or SVCB advertisements during the investigation.
+
+### [specific VPN application redacted]-specific evidence
+
+Review [specific VPN application redacted]'s official documentation, including its guidance about DNS leak protection and custom DNS.
+
+Use it to generate testable hypotheses, not to assert that [specific VPN application redacted] is necessarily responsible.
+
+Do not assume that Android Private DNS, [specific VPN application redacted] custom DNS, and browser-level DoH are interchangeable. Explain which mechanism is actually being tested.
+
+### Hypothesis matrix
+
+Produce a table with:
+
+- Hypothesis.
+- Supporting evidence.
+- Missing or contradictory evidence.
+- A test that distinguishes it from alternatives.
+- Required environment.
+- Risk of the test.
+- Confidence level.
+
+Prioritize low-risk, reversible tests that can distinguish multiple hypotheses.
+
+Do not claim the issue was reproduced unless it was actually reproduced.
+
+## 5. Controlled diagnostic plan for the reporter
+
+If the root cause cannot be established locally, provide a minimal device-side test plan.
+
+The plan should distinguish, where possible:
+
+- Custom endpoint without VPN.
+- Custom endpoint with VPN.
+- Official NextDNS DoT endpoint with VPN.
+- IPv4 versus IPv6 reachability where independently testable.
+- DNS discovery versus actual DNS resolution.
+- Worker success versus upstream resolver success.
+
+For every test, state what the result would establish and what it would not establish.
+
+Avoid asking the reporter to make several configuration changes simultaneously. Do not recommend disabling security protections permanently.
+
+If testing a Cloudflare IPv6 setting is considered useful, treat it as a separate, explicitly approved, reversible infrastructure experiment—not a code fix or an action to perform automatically.
+
+## 6. Evidence-based optimization
+
+After completing the read-only review, identify the smallest changes that would materially improve correctness, security, or compatibility.
+
+Potential areas include:
+
+- Correcting a demonstrated SVCB/DDR interoperability defect.
+- Fixing a proven configuration-consistency problem.
+- Improving error classification.
+- Improving diagnostic timeout or lock handling.
+- Adding targeted regression tests.
+- Clarifying misleading UI labels or documentation.
+- Adding diagnostic information that helps distinguish discovery, transport, upstream, and DNS response failures.
+
+Do not introduce changes merely for stylistic preference.
+
+Do not add IPv4-only or IPv6-only controls unless a supported mechanism can actually enforce the intended traffic behavior.
+
+Do not add new infrastructure, external services, paid dependencies, or persistent configuration fields without a demonstrated need and separate approval.
+
+First return the findings and proposed patch plan. Wait for approval before modifying files.
+
+## 7. Test and regression requirements
+
+Report actual results for:
+
+- `npm run check`
+- Relevant targeted unit tests.
+- Production build.
+- Playwright E2E tests, when the required environment is available.
+- `git diff --check`.
+
+Confirm whether the same three baseline E2E tests fail for the same reasons. Do not mix unrelated fixes for those tests into this work.
+
+Review coverage for:
+
+- Successful end-to-end DNS diagnostics.
+- Successful upstream diagnostics using saved configuration.
+- Authentication and rate limiting.
+- Arbitrary URL rejection.
+- HTTP errors and redirects.
+- Malformed DNS responses.
+- Transaction-ID and question mismatches.
+- DNS response codes.
+- Timeouts and transport errors.
+- Configuration inconsistency.
+- IPv4/IPv6 metadata ambiguity.
+- Sensitive-data sanitization.
+- DDR/SVCB and `/dns-query` regression behavior.
+- Honest handling of unsupported and inconclusive tests.
+
+Clearly separate tests actually executed from tests merely proposed or skipped.
+
+## 8. Required final report
+
+Return two separate assessments.
+
+### Part A — Phase 2 PR readiness
+
+Choose one:
+
+- `READY FOR PR`
+- `READY AFTER FIXES`
+- `NOT READY FOR PR`
+
+Include supporting file and function references, test results, and material risks.
+
+### Part B — [specific VPN application redacted] compatibility
+
+Choose one:
+
+- `ROOT CAUSE IDENTIFIED`
+- `LIKELY CAUSE, NEEDS REPRODUCTION`
+- `MULTIPLE PLAUSIBLE CAUSES`
+- `INSUFFICIENT EVIDENCE`
+
+Include the hypothesis matrix, supporting evidence, confidence, and prioritized next steps.
+
+### Part C — Minimal optimization plan
+
+List each proposed change, why it is necessary, which failure mode it addresses, how it will be tested, and whether it requires code, device-side testing, or infrastructure access.
+
+End with the single most useful next action.
+
+Do not commit, push, open a pull request, deploy, or modify live Cloudflare resources. Wait for explicit authorization before applying fixes.
+
+=====================================================================
+RESPONSE 4 (AWS Kiro AI): Review and VPN investigation report (original in Turkish)
+=====================================================================
+
+# İnceleme raporu: Phase 2 PR hazırlığı ve [specific VPN application redacted] uyumluluğu
+
+Hiçbir dosyayı değiştirmedim, commit, push veya deploy yapmadım. Branch `feature/my-changes`. Phase 2 değişiklikleri (8 dosya değişti, 6 yeni dosya) commit edilmemiş halde duruyor.
+
+## Kullanılan kaynaklar
+
+| Kaynak | İlgili bulgu |
+|---|---|
+| [Android DoH3 blog](https://security.googleblog.com/2022/07/dns-over-http3-in-android.html) | Android, DoH'u HTTP/3 (QUIC, UDP) üzerinden kullanıyor. Yazı HTTP/2 DoH'tan söz etmiyor. DDR o tarihte "gelecekte" planlanıyordu. |
+| [Cloudflare IPv6 compatibility](https://developers.cloudflare.com/network/ipv6-compatibility/) | Proxied kayıtlar için AAAA kaydı otomatik yayınlanıyor. IPv4 mü IPv6 mı kullanılacağına istemci karar veriyor. IPv6'yı kapatma seçeneği **yalnızca Enterprise planda** var (Free plan tablosunda "Can customize: No"). |
+| [Workers fetch](https://developers.cloudflare.com/workers/runtime-apis/fetch/) ve Request `cf` seçenekleri | Bu sayfalarda IP ailesi seçen bir seçenek yok. Bu, "seçenek kesinlikle yok" kanıtı sayılmaz. Belgelenmiş bir yolun olmadığını gösterir. |
+| [specific VPN application redacted] DNS leak sayfası ([VPN vendor support URL redacted]) | DNS sorguları tünel içinden VPN sağlayıcısının sunucularına gidiyor. Sağlayıcı, Private DNS ve DoH/DoT kullanılmamasını öneriyor. Sayfada "IPv6 connections are simply blocked at this time" yazıyor, ancak sayfanın tarihi belirsiz. |
+| [specific VPN application redacted] custom DNS sayfası ([VPN vendor support URL redacted]) | Custom DNS ile [VPN DNS-filtering feature name redacted] birlikte kullanılamıyor. Android uygulamasında custom DNS ayarı var. |
+| RFC 9461 | `alpn` yoksa kayıt "incompatible" sayılır. HTTP için `dohpath` zorunlu. Loophole'un önerdiği `alpn="h3" dohpath="/dns-query{?dns}"` kaydı RFC'ye uygun. |
+| RFC 9462 §5 | Hostname bilinen bir resolver için SVCB sorgusu "the named resolver itself **or any other resolver**" üzerinden yapılabilir. |
+| RFC 8484 §4.1 | İstemciler DNS ID olarak 0 kullanmalıdır (SHOULD). Tanılamada rastgele ID kullanmak bilinçli ve kapsamı sınırlı bir sapma. `/dns-query` gelen ID'yi değiştirmiyor. |
+
+## Part A: Phase 2 PR hazırlığı. Karar: READY AFTER FIXES
+
+| Alan | Sonuç | Kanıt |
+|---|---|---|
+| DNS sorgusu ve yanıt doğrulama | PASS | `worker/dns/diagnostics.ts`: `randomId()` `crypto.getRandomValues` kullanıyor ve sıfırı reddediyor. `diagnosticQuery()` ID'yi yalnızca tanılama sorgusuna yazıyor. `inspectReply()` sırasıyla uzunluğu, ID'yi, `question()` ve `validateRecords()` ile yapıyı, soruyu ve RCODE'u kontrol ediyor. `probeDohPath()` sorguyu gerçekten `handleDns()` üzerinden gönderiyor ve yanıtı ayrıca kendisi doğruluyor. `probeUpstream()` `endpointFor()` ile kayıtlı upstream'e doğrudan gidiyor. `makeQuery`'yi kullanan `router.ts:/api/test`, `ddr-checker.ts:verifyDomain` ve testler değişmedi. `proxy.ts`, `index.ts` ve `wire.ts` diff'te yok. |
+| Yapılandırma tutarlılığı | **FAIL** | Aşağıda ayrıntılı. |
+| NextDNS semantiği | PASS | Redirect'ler `redirect: 'manual'` ile takip edilmiyor, 3xx yanıtı `redirect` olarak sınıflanıyor. 505 `http-version`, diğer HTTP hataları `http-status`, yanlış content-type `content-type`, okunamayan gövde `malformed-dns`, zaman aşımı `timeout`, istisnalar `transport` olarak sınıflanıyor. Küçük bir abartı var: `transport` mesajı "connection or TLS failure" diyor, ama runtime'ın başka bir `fetch` hatası da bu sınıfa düşer. Upstream hostname DNS'te çözülemezse Cloudflare bunu HTTP 530 olarak döndürür ve `http-status` sınıfına doğru düşer. |
+| Eşzamanlılık ve zaman aşımı | PASS (küçük riskler) | `router.ts` kilidi `finally` bloğunda serbest bırakıyor, `runDiagnostics` istisna fırlatsa da bu çalışıyor. Kilit 30 sn sonra kendiliğinden geçersiz oluyor. Durable Object çağrıları sıraya koyduğu için iki istek aynı anda kilidi alamıyor. Her ağ işlemi `withDeadline` ile 8 sn'ye bağlı ve işlemler paralel çalışıyor, toplam süre yaklaşık 8 sn artı Durable Object gecikmesi. Zaman aşımı veya hata hiçbir zaman PASS üretmiyor. Riskler: `endDiagnostic` kilidin kime ait olduğunu kontrol etmeden siliyor. Kilidin istisna durumunda serbest bırakılması ve süresi dolan kilidin geri kazanılması testlerle kanıtlanmamış. |
+| Güvenlik ve regresyon kapsamı | PASS (eksikler var) | `diagnostics-api.test.ts` şunları test ediyor: kurulum öncesi, oturumsuz ve sahte token ile 401, yabancı origin ile 403, GET ile 405, istekte gönderilen saldırgan URL'nin kullanılmaması, 409 ve kilit serbest bırakma, 12 çalıştırmadan sonra 429, `/dns-query` CORS davranışı ve sıfır olmayan ID'nin korunması. `diagnostics.test.ts` sanitizasyonu test ediyor: profil ID'si, URL, cihaz adı, IP adresi ve paket base64'ü yanıtta yer almıyor. Enforcement kontrolünün her zaman UNSUPPORTED döndüğü de test ediliyor. DDR/SVCB davranışı mevcut `status.test.ts` testleriyle korunuyor. |
+
+### Bulgu A1: DoH kontrolü, normal proxy'nin kullandığı yapılandırmayı kullanmıyor (önemli)
+
+- `/dns-query`, ayarları `index.ts` içinde `activeConfig(env.CONFIG)` ile alıyor. `worker/config.ts` bu değeri KV'den okuyor ve isolate içinde 15 sn önbellekte tutuyor. KV okuması başarısız olursa önbellekteki eski değeri **süresiz** kullanmaya devam ediyor.
+- `probeDohPath()` ise Durable Object'teki kayıtlı config ile çalışıyor. Bu yüzden "End-to-end DoH query: PASS" sonucu, normal proxy'nin kullandığı etkin config'i kanıtlamıyor.
+- `checkKv()` KV'yi doğrudan okuyor ve isolate önbelleğini atlıyor. Bu nedenle KV kontrolü PASS verirken aynı isolate'teki `/dns-query` en fazla 15 sn boyunca eski revision'ı kullanabilir. Bu bir **yanlış PASS** senaryosudur.
+- Kısmi yazma durumu da var. `save()` önce KV'ye, sonra Durable Object'e yazıyor. KV yazması başarılı olup Durable Object yazması başarısız olursa KV'deki ayar daha yeni olur. `kv-stale` mesajı ise bu durumda yanlış biçimde "older version" diyor.
+- Revision kontrolünün kanıtladığı: KV kontrolü PASS ise, isteği karşılayan lokasyondaki KV okuması Durable Object ile aynı revision'ı döndürmüştür. Kanıtlamadığı: isolate önbelleğinin, diğer lokasyonların ve sonraki isteklerin aynı config'i kullandığı.
+- Gerçek etkisi düşük, çünkü ayarlar yaklaşık 60 sn içinde birbirine yaklaşır. Ancak "end-to-end" iddiası için bu fark yanıltıcı.
+
+**Önerilen en küçük düzeltme:** `probeDohPath`, `activeConfig(env.CONFIG)` ile aldığı etkin config'i kullansın. Bu, `/dns-query`'nin kullandığı config ile aynı. Etkin config'in revision'ı kayıtlı config'inkinden farklıysa sonuç INCONCLUSIVE olsun, aynıysa PASS geçerli olsun. `activeConfig` 503 hatası verirse, yani `/dns-query` de aynı hatayı verecekse, sonuç FAIL `no-settings` olsun. `kv-stale` mesajı "farklı revision" olarak düzeltilsin. Eklenecek testler: isolate önbelleğinin eski olduğu durum, KV'nin önde olduğu durum, KV'nin geride olduğu durum ve 503 durumu.
+
+### Küçük bulgular (isteğe bağlı)
+
+- **A2:** Kilide rastgele bir token eklensin ve `endDiagnostic` yalnızca kendi kilidini silsin. İstisna durumunda serbest bırakma ve süresi dolan kilidin geri kazanılması için testler eklensin.
+- **A3:** `transport` mesajı "connection, TLS or runtime fetch error" olarak değiştirilsin. README ve UI'da şu not bulunsun: "`example.com` A PASS sonucu yalnızca bu sorgunun geçerli bir yanıt aldığını gösterir. NextDNS filtre kuralları, hesap ayarları ve diğer kayıt tipleri test edilmedi." Şu an bu sınırlama ne README'de ne de UI'da yazıyor.
+
+### Test sonuçları (bu turda çalıştırıldı)
+
+| Komut | Sonuç |
+|---|---|
+| `npm run check` | Çıkış kodu 0. Prettier ve tsc temiz, 11 dosyada 87/87 test geçti, build başarılı. |
+| `npx vitest run tests/diagnostics.test.ts tests/diagnostics-api.test.ts tests/origin.test.ts tests/proxy.test.ts tests/status.test.ts tests/routing.test.ts` | 6 dosyada 64/64 test geçti |
+| `git diff --check` | Çıkış kodu 0 |
+| `npx playwright test --reporter=list` | 3 geçti (yeni connectivity testi dahil), 3 başarısız. Başarısız olanlar baseline'daki testlerin aynısı ve hatalar da aynı: "Your website is running" başlığı bulunamıyor, `Four-digit PIN` alanı bekleme süresi doluyor, beklenen 401 yerine 200 geliyor. Yeni hata yok. |
+
+Önerilen ama yazılmamış testler: yapılandırma tutarsızlığı, kilit sahipliği ve süresi dolan kilit.
+
+## Part B: [specific VPN application redacted]. Karar: MULTIPLE PLAUSIBLE CAUSES
+
+Sorunu yeniden üretmedim. Cihaz ve deploy edilmiş bir ortam olmadan yeniden üretmek mümkün değil.
+
+**Koddan kesin olan yapısal gerçek:** Özel hostname'in tek bir taşıma yolu var. Bu yol, DDR ile bulunan SVCB kaydı üzerinden DoH3 (UDP 443). Worker DoT (853) sunamaz, çünkü Workers yalnızca HTTP kabul eder. NextDNS'in DoT hostname'i ise TCP 853 üzerinden doğrudan çalışır. Bu fark, "NextDNS DoT çalışıyor ama özel hostname çalışmıyor" gözlemini açıklıyor. Ancak hangi adımın bozulduğunu göstermiyor. SVCB keşfi veya QUIC başarısız olursa geriye dönülecek ikinci bir yol yok.
+
+**İstek yolu:**
+
+| Adım | Ne olur | Nasıl doğrulanır |
+|---|---|---|
+| 1 | Android, Private DNS hostname'i ve `_dns.<host>` SVCB kaydını ağın resolver'ı ile çözer. VPN açıkken bu büyük olasılıkla VPN sağlayıcısının DNS'idir. Bu bir varsayım, Android kodunu doğrulamadım. | Cihaz |
+| 2 | Android, `alpn=h3` gördüğü için QUIC ile Cloudflare'e bağlanır. | Cihaz |
+| 3 | Cloudflare'in WAF ve bot korumaları Worker'dan önce çalışır. | Zone ayarları (salt okunur kontrol) |
+| 4 | `index.ts`, `/dns-query` isteğini `handleDns`'e verir. | Kod (test edildi) |
+| 5 | `endpointFor` NextDNS endpoint'ini seçer. | Kod (test edildi) |
+| 6 | Yanıtın ID ve soru eşleşmesi doğrulanır. | Kod (test edildi) |
+
+4 ile 6 arasındaki adımlarda VPN'e bağlı hiçbir kod yolu yok. VPN yalnızca `cf-connecting-ip` değerini değiştirir.
+
+| # | Hipotez | Destekleyen kanıt | Eksik veya çelişen kanıt | Ayırt edici test | Ortam | Risk | Güven |
+|---|---|---|---|---|---|---|---|
+| H1 | SVCB sorgusu VPN sağlayıcısının DNS'i veya [VPN DNS-filtering feature name redacted] üzerinden dönmüyor. Android DoT'a düşüyor, Worker DoT sunmadığı için doğrulama başarısız oluyor. | RFC 9462 §5 sorgunun herhangi bir resolver'a gidebileceğini söylüyor. Loophole'un kurulum kontrolü (`verifyDomain`) SVCB'yi kullanıcının ağ resolver'ı ile değil `cloudflare-dns.com` ile doğruluyor. VPN kapalıyken çalışıyor. | Android'in VPN açıkken SVCB'yi hangi resolver'a sorduğu bilinmiyor. VPN sağlayıcısının DNS'inin tip 64 kayıtlarını döndürüp döndürmediği bilinmiyor. | Aynı VPN sunucusuna bağlı bir bilgisayarda `dig _dns.<domain> SVCB` ile `dig @1.1.1.1 _dns.<domain> SVCB` çıktılarını karşılaştır. Ayrıca T2'deki cihaz logları. | Bilgisayar + VPN | Çok düşük | Orta |
+| H2 | QUIC (UDP 443) tünel içinde başarısız oluyor (MTU, Stealth/TCP protokolü). | Android yalnızca DoH3 kullanıyor (blog). DoT TCP kullandığı için çalışıyor. | VPN'in UDP'yi engellediğine dair bir kanıt yok. | VPN açıkken cloudflare-quic.com'da HTTP/3 kullanılıyor mu bak. VPN protokolünü tek tek değiştir. | Telefon | Düşük | Orta |
+| H3 | IPv6: AAAA yayınlanıyor, tünelde IPv6 engelli, DoH3 istemcisi IPv6 adresinde takılıyor. | VPN sağlayıcısının dokümanı IPv6'nın engellendiğini söylüyor (tarihi belirsiz). Cloudflare varsayılan olarak AAAA yayınlıyor. | NextDNS DoT hostname'inin de AAAA kaydı var ve çalışıyor. DoH3 istemcisinin adres seçimi bilinmiyor. | VPN açıkken test-ipv6.com. T2'deki loglarda sunucu başına doğrulama sonucu. | Telefon | Düşük | Düşük-orta |
+| H4 | Cloudflare güvenlik özellikleri (Bot Fight Mode, Security Level, WAF) VPN IP'lerine challenge sayfası gösteriyor. Android'e HTML gidiyor. | Bu özellikler Worker'dan önce çalışıyor. VPN IP'lerinin itibarı düşük olabiliyor. | Zone ayarları bilinmiyor. | VPN açık ve Private DNS NextDNS DoT iken tarayıcıda `https://<domain>/dns-query?dns=AAABAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE` adresini aç. Cloudflare Security Events'e salt okunur bak. | Telefon + dashboard | Çok düşük | Düşük-orta |
+| H5 | Android 17 veya GrapheneOS'te VPN ağı için strict mode ya da DDR davranışı farklı. | DDR flag'leri deneysel. | Sürüme özgü bir kanıt yok. | T2 (dumpsys ve logcat) | Telefon + ADB | Düşük | Düşük |
+| H6 | VPN sağlayıcısının DNS leak koruması şifreli DNS trafiğini engelliyor. | Sağlayıcı DoH ve DoT kullanılmamasını öneriyor. | NextDNS DoT tünel içinde çalışıyor, yani genel bir engelleme yok. | H1 ve H2 testleri bunu da eler. | – | – | Düşük |
+| H7 | Worker'dan NextDNS'e giden bağlantıda sorun var. | – | VPN bu yolu etkilemiyor ve VPN kapalıyken çalışıyor. | VPN açıkken dashboard'da Test connectivity, upstream kontrolü | Telefon | Yok | Çok düşük |
+| H8 | Worker'daki yanıt doğrulaması veya zaman aşımları sorun çıkarıyor. | – | VPN'e bağlı bir kod yolu yok. | H7 ile aynı test | – | – | Çok düşük |
+
+**IPv6 ayrımları:**
+- İstemciden Cloudflare'e kullanılan aileyi istemci seçer. Cloudflare Free planda AAAA yayınını kapatmak mümkün değil. Bu yüzden "IPv4-only" bir altyapı deneyi Free planda **yapılamaz**. Pseudo IPv4, AAAA kaydını kaldırmaz.
+- Worker'dan upstream'e kullanılan aile için belgelenmiş bir kontrol yok.
+- SVCB `ipv4hint`/`ipv6hint` parametreleri yalnızca ipucu. RFC 9461'e göre istemci yine A/AAAA kayıtlarını kullanır. Bunları kullanmak için bir kanıt yok.
+- `cf-connecting-ip` yalnızca dashboard'u açan tarayıcının ailesini gösterir. Android'in Private DNS bağlantısını göstermez.
+
+### Cihaz tarafı test planı (her adımda tek değişiklik)
+
+| Test | Koşul | Ne kanıtlar | Ne kanıtlamaz |
+|---|---|---|---|
+| T0 | VPN protokolünü, [VPN DNS-filtering feature name redacted], Custom DNS ve kill switch durumunu not et. | Testlerin karşılaştırılabilir olmasını sağlar. | – |
+| T1 | VPN kapalı, özel hostname: `adb shell dumpsys dnsresolver` çıktısını kaydet. Bu komutun çıktısı sürüme göre değişebilir, varlığını doğrula. | Çalışan durumun referansı: DoH sunucusu ve doğrulama durumu | – |
+| T2 | VPN açık, özel hostname: aynı dumpsys çıktısı ve `adb logcat -d \| findstr /i "DnsResolver PrivateDns DoH"` | DoH sunucusu hiç oluşmadıysa ve DoT 853 denendiyse H1 (keşif) güçlenir. DoH sunucusu oluştu ama doğrulama başarısızsa H2, H3 veya H4 (taşıma) güçlenir. | Kesin kök nedeni |
+| T3 | VPN açık, Private DNS = NextDNS DoT (internet çalışır durumda): (a) yukarıdaki DoH URL'si, (b) dashboard'da Test connectivity, (c) test-ipv6.com, (d) cloudflare-quic.com | (a) HTTPS/TCP, WAF ve Worker yolunu (H4), (b) upstream'i (H7), (c) IPv6'yı (H3), (d) tünelde QUIC'i (H2) ayırır. | (a) QUIC'i test etmez. (d) farklı bir hostname kullanır. |
+| T4 | Aynı VPN sunucusuna bağlı bir bilgisayarda iki `dig` SVCB sorgusu | VPN resolver'ının SVCB kaydını döndürüp döndürmediğini (H1) | Android'in gerçekten bu resolver'ı kullandığını |
+| T5 | T4'te kayıt dönmüyorsa: yalnızca [VPN DNS-filtering feature name redacted] özelliğini kapat, T2'yi tekrarla, sonra geri aç | Bu özelliğin etkisini | – |
+| T6 | Yalnızca VPN protokolünü değiştir, T2'yi tekrarla | Taşıma katmanını (H2) | – |
+
+Koruma ayarlarının hiçbiri kalıcı olarak kapatılmamalı.
+
+## Part C: En küçük optimizasyon planı
+
+| # | Değişiklik | Neden gerekli | Ele aldığı hata modu | Nasıl test edilir | Tür |
+|---|---|---|---|---|---|
+| C1 | `probeDohPath` `activeConfig` ile alınan etkin config'i kullansın, revision karşılaştırması yapılsın, `kv-stale` mesajı düzeltilsin | PR öncesi gerekli | Yanlış end-to-end PASS | 4 yeni unit test | Kod |
+| C2 | Kilit token'ı, istisna durumunda serbest bırakma ve süresi dolan kilit testleri | Önerilir | Yanlış kilit silme, test edilmemiş yollar | 3 unit test | Kod |
+| C3 | `transport` mesajı ve "example.com A PASS NextDNS politikalarını kanıtlamaz" notu (README ve UI) | Önerilir | Abartılı sonuç yorumu | Mevcut testler, metin kontrolü | Kod + doküman |
+| C4 | README'ye VPN sorun giderme bölümü: tek yol DoH3, DoT'a geri dönüş yok, kurulum kontrolü Cloudflare DNS ile yapılıyor, T2 ve T4 adımları | Önerilir | Yanlış teşhis | – | Doküman |
+| C5 | T2 ve T4 cihaz/bilgisayar testleri | Kök neden için gerekli | H1 ile H2/H3/H4 ayrımı | – | Cihaz |
+
+Önerilmeyenler: IPv4/IPv6 anahtarı (zorlanabilen bir mekanizma yok), SVCB hint değişiklikleri (kanıt yok), DoT desteği (Workers ile mümkün değil) ve Cloudflare IPv6 deneyi (Free planda kapatılamıyor).
+
+**En faydalı sonraki adım:** Raporu veren kişiden VPN kapalı ve açıkken `adb shell dumpsys dnsresolver` çıktısını (T1 ve T2) almak. Bu çıktı, sorunun keşif adımında (H1) mi yoksa taşıma katmanında (H2, H3, H4) mı olduğunu tek seferde ayırır.
+
+C1'i uygulamamı onaylıyor musun? C2, C3 ve C4'ü de eklemek istersen ayrıca belirt. Onayın olmadan dosyalara dokunmayacağım.
+
+=====================================================================
+PROMPT 4a (user): Language preference
+=====================================================================
+
+teşekkürler. ingilizce konuş bundan sonra
+(English translation: "Thanks. Speak English from now on.")
+
+=====================================================================
+RESPONSE 4a (AWS Kiro AI)
+=====================================================================
+
+Understood, I'll reply in English from now on.
+
+Nothing has changed since the last report. No files have been modified, committed, pushed, or deployed. The decisions still waiting on you:
+
+- **C1 (needed before the PR):** make the end-to-end DoH check use the same KV-backed config that `/dns-query` uses, compare revisions, and fix the `kv-stale` message.
+- **C2–C4 (optional):** add an ownership token to the lock and tests for it, tighten the `transport` message and the "example.com A ≠ NextDNS policy" note, and add a VPN troubleshooting section to the README.
+- **[specific VPN application redacted]:** collect `adb shell dumpsys dnsresolver` output from the reporter with the VPN off and on.
+
+Tell me which of these to apply.
+
+
+=====================================================================
+PROMPT 5 (user): Approval of C1–C4
+=====================================================================
+
+Approved. Proceed with C1, C2, C3, and C4 as described in your engineering report.
+
+### Priority 1 — C1: Configuration consistency
+- Make the end-to-end DoH diagnostic use the effective configuration used by the normal `/dns-query` path.
+- Compare the relevant configuration revisions and return `INCONCLUSIVE` when consistency cannot be established.
+- Return an appropriate failure when the normal proxy would also fail because no valid settings are available.
+- Correct the `kv-stale` explanation so it accurately describes revision differences.
+- Add deterministic tests for stale isolate cache, KV ahead of Durable Object, KV behind Durable Object, and the unavailable-settings case.
+
+### Priority 2 — C2: Diagnostic lock safety
+- Add an ownership token to each diagnostic lock.
+- Ensure a diagnostic run can release only its own lock.
+- Add tests for exceptions, lock release, expired-lock recovery, and concurrent requests.
+- Preserve the existing rate limit and single-run behavior.
+
+### Priority 3 — C3: Accurate diagnostic claims
+- Correct the upstream transport error wording so it does not claim every fetch failure is necessarily a connection or TLS failure.
+- Add a clear note to the README and dashboard explaining that a successful `example.com` A query proves only that the tested query received a valid response. It does not prove that NextDNS filtering policies, account settings, or other record types work correctly.
+
+### Priority 4 — C4: VPN troubleshooting documentation
+- Add a focused troubleshooting section covering Android Private DNS, DDR/SVCB discovery, DoH3/QUIC, [specific VPN application redacted], NextDNS DoT, and the limits of IPv4/IPv6 observations.
+- Clearly distinguish verified facts from hypotheses.
+- Include the proposed device-side diagnostic steps and explain what each test can and cannot establish.
+- Do not present IPv6 as the confirmed root cause or imply that the current Worker can force an IP family.
+
+### Implementation and verification
+- Keep the changes minimal and preserve existing user work.
+- Do not implement IPv4-only/IPv6-only enforcement or modify live DNS, Cloudflare settings, or infrastructure.
+- Do not fix the three unrelated baseline E2E failures as part of this change.
+- Run `npm run check`, the relevant targeted tests, the production build, Playwright E2E tests if available, and `git diff --check`.
+- Report exact commands, actual results, skipped tests, and the final diff.
+- Review the final changes for security regressions and misleading diagnostic results.
+
+**Do not commit, push, open a pull request, or deploy.** Stop after implementation and verification and provide the final engineering report for my review.
+
+=====================================================================
+RESPONSE 5 (AWS Kiro AI): C1–C4 implementation report
+=====================================================================
+
+# Final report: C1–C4 implemented and verified
+
+C1 through C4 are implemented. Unit tests, typecheck, formatting, the production build, and `git diff --check` all pass. Playwright still shows the same three failures as the baseline and no new ones. Nothing was committed, pushed, deployed, or changed in Cloudflare.
+
+## What changed
+
+**C1: configuration consistency** (`worker/dns/diagnostics.ts`, `worker/api/router.ts`)
+- A new function, `checkEffectiveDoh`, runs the end-to-end DoH check. It loads its settings with `activeConfig(env.CONFIG)`, the same function and per-isolate cache that `/dns-query` uses. The router passes it in as `effectiveConfig`.
+- The result depends on how those settings compare with the dashboard's saved revision:
+  - **Same revision:** the normal result (PASS, or FAIL with its reason).
+  - **Different revision and the query passed:** `INCONCLUSIVE` with code `config-mismatch`.
+  - **Different revision and the query failed:** stays `FAIL`, with a note about the revision difference.
+  - **`/dns-query` would return 503 (no valid settings):** `FAIL` with code `no-settings`, and no query is sent.
+  - **Loading the settings times out:** `INCONCLUSIVE` with code `timeout`.
+- The `kv-stale` message now says "different settings revision". It uses `updatedAt` only as a hint about which copy is newer, because revision IDs are random and can't be ordered.
+- The KV check's PASS text now says it was a direct read and that `/dns-query` may briefly use a cached copy.
+
+**C2: lock safety** (`worker/auth/service.ts`, `worker/auth/object.ts`, `worker/api/router.ts`)
+- Each lock now stores a random 32-byte token and an expiry: `{ token, expiresAt }`.
+- `endDiagnostic` deletes the lock only if the token matches, using a constant-time comparison (`sameSecret`).
+- The token never leaves the Worker. So the release still works if the session expired during the run, and a late run can't remove a newer run's lock.
+- An expired lock is simply replaced. Rate limiting (12 per minute) and the 409 response for a second concurrent run are unchanged.
+
+**C3: accurate claims**
+- The `transport` failure now reads "failed before any HTTP response… connection, TLS, or runtime fetch errors" instead of claiming every fetch failure is a connection or TLS failure.
+- The PASS texts and a new note under the dashboard results (`Diagnostics.tsx`, `.diagnostics-note` style) say that an `example.com` A pass does not test NextDNS filtering rules, account settings, or other record types. The README says the same.
+
+**C4: README "Troubleshooting with a VPN" section**
+- It lists the known facts with sources: DoH3 is the only transport, a Worker can't offer a DoT fallback, the setup check uses Cloudflare's resolver, plus the [specific VPN application redacted] documentation, the Cloudflare IPv6 documentation, and RFC 9462 §5.
+- It lists 5 hypotheses, clearly marked unconfirmed. IPv6 is presented as one hypothesis, not as the cause.
+- It includes a 7-step device test plan. Each step says what it can and cannot show and changes only one setting.
+- The sample `/dns-query?dns=` URL decodes to a valid `example.com` A query with ID 0.
+
+## Tests (all executed)
+
+| Command | Result |
+|---|---|
+| `npm run check` | Exit 0. Prettier and tsc clean, 98/98 tests in 12 files pass (was 87), build succeeds. |
+| `npx vitest run` on the 8 related files (diagnostics, diagnostics-api, diagnostics-lock, origin, proxy, status, routing, auth) | 84/84 pass |
+| `git diff --check` | Exit 0 |
+| `npx playwright test --reporter=list` | 3 pass (including the connectivity test), 3 fail |
+
+The three Playwright failures are the same tests with the same errors as the baseline: the "Your website is running" heading is missing, the `Four-digit PIN` field times out, and a check expects 401 but gets 200.
+
+New tests:
+- **C1:** stale isolate cache gives INCONCLUSIVE, where a direct KV read alone would have said PASS. KV ahead of and KV behind the saved settings both give INCONCLUSIVE, with the right timestamp hint. A real failure stays FAIL when revisions differ. Missing or invalid settings give `no-settings` without any fetch. A hung settings load gives INCONCLUSIVE. The full report shows the mismatch.
+- **C2:** a missing or wrong lease token doesn't release the lock. An expired lock is recovered. A late run can't release a newer run's lock. Of two simultaneous requests, one runs and the other gets 409, with exactly 2 upstream fetches. In `diagnostics-lock.test.ts`, an exception thrown inside `runDiagnostics` (via `vi.mock`) still releases the lock, and the 503 response contains no internal error text.
+
+Not tested:
+- No automated test checks that the new UI note is visible.
+- Nothing was tested on a real device or a deployed Worker.
+
+## Final diff
+
+- **Modified (8 files, +359/−1 lines):** `README.md`, `shared/contracts.ts`, `src/components/Dashboard.tsx`, `src/index.css`, `tests/browser/app.spec.ts`, `worker/api/router.ts`, `worker/auth/object.ts`, `worker/auth/service.ts`.
+- **New (7 files):** `worker/dns/diagnostics.ts`, `src/components/Diagnostics.tsx`, `src/lib/diagnostics.ts`, and the tests `diagnostics.test.ts`, `diagnostics-api.test.ts`, `diagnostics-lock.test.ts`, `origin.test.ts`.
+- **Unchanged (confirmed with `git diff --quiet HEAD`):** `worker/index.ts`, `dns/proxy.ts`, `dns/wire.ts`, `config.ts`, `dns/providers.ts`, `dns/ddr-checker.ts`. The `/dns-query` path, the DDR/SVCB check, and provider selection did not change.
+
+## Security and accuracy review
+
+- No new inputs reach the diagnostics. The request body is still ignored, origin and session checks are unchanged, and the lease token is never included in a response.
+- A PASS can no longer hide a configuration mismatch, a timeout, or missing settings.
+- Total run time is still bounded at about 8 seconds plus Durable Object latency. `checkEffectiveDoh` gives the DoH query only the time left after loading the settings.
+
+## Remaining risks
+
+- Even with C1, the end-to-end check only covers the isolate and location that served the request. Other Cloudflare locations can briefly hold other revisions.
+- `updatedAt` is only a hint about which copy is newer, not proof.
+- The [specific VPN application redacted] issue has not been reproduced. The README describes it as unresolved.
+
+When you approve, I'll commit, push to `ondern/loophole`, and open the PR against `eyalm2000/loophole` `main`.
+
+=====================================================================
+PROMPT 6 (user): Final read-only pre-PR audit
+=====================================================================
+
+Perform a final read-only pre-PR audit of the current uncommitted changes on `feature/my-changes`.
+
+**Do not modify any files. Do not commit, push, create a PR, deploy, or change Cloudflare settings.**
+
+Review the actual Git diff and relevant implementation, not just the previous report.
+
+### 1. Verify the final diff
+- Run `git status --short`, `git diff --stat`, `git diff --check`, and `git diff --quiet HEAD`.
+- List every modified and untracked file exactly once.
+- Confirm no unrelated files or accidental generated artifacts were introduced.
+- Inspect the actual changes to `diagnostics.ts`, `router.ts`, `service.ts`, `object.ts`, `Diagnostics.tsx`, and the relevant tests.
+
+### 2. Audit C1: effective configuration
+Verify that the diagnostics use the same effective configuration path as `/dns-query`, including the isolate-local cache and its failure behavior.
+
+Check that:
+- A revision mismatch cannot produce a misleading PASS.
+- Missing or invalid settings do not trigger a DNS fetch.
+- A settings-load timeout is handled correctly.
+- KV checks and effective-configuration checks are clearly distinguished in the UI and report.
+- `updatedAt` is described only as a hint, never as proof of revision ordering.
+- All relevant edge cases have meaningful tests.
+
+### 3. Audit C2: diagnostic lock safety
+Verify token ownership, expiry handling, exception cleanup, and concurrent execution.
+
+In particular:
+- Confirm the token comparison is actually constant-time for the supported token format.
+- Confirm an expired run cannot release a newer run's lock.
+- Check behavior if Durable Object storage operations fail.
+- Check whether lock expiry could permit overlapping diagnostic runs while an earlier run is still executing.
+- Confirm tokens never appear in responses or logs.
+
+Distinguish verified guarantees from assumptions.
+
+### 4. Audit C3 and C4
+- Confirm all diagnostic messages accurately describe what each test proves and does not prove.
+- Verify the sample `/dns-query?dns=` URL really represents a valid `example.com` A query with transaction ID 0.
+- Check the README's technical claims and citations against the actual implementation and cited sources.
+- Identify any statement that is too strong, misleading, or unsupported.
+
+### 5. Regression and test review
+- Run `npm run check`, `git diff --check`, and the Playwright suite.
+- Compare the three reported Playwright failures against the original baseline if the baseline is available. Do not call them baseline failures solely because the previous report says so.
+- Determine whether the UI note has a suitable automated test.
+- Report exact test counts and commands.
+- Do not silently modify tests or dismiss failures.
+
+### 6. Final recommendation
+Return:
+1. Verified file inventory and diff summary.
+2. Confirmed findings, each tied to the relevant file/function/test.
+3. Any remaining correctness, security, or regression concerns.
+4. A clear recommendation: `READY FOR PR`, `READY AFTER FIXES`, or `NOT READY`.
+5. The smallest necessary follow-up actions, if any.
+
+Do not implement those follow-up actions in this audit. Wait for explicit authorization before making changes.
+
+=====================================================================
+RESPONSE 6 (AWS Kiro AI): Pre-PR audit report
+=====================================================================
+
+# Pre-PR audit: `feature/my-changes` (read-only)
+
+**Recommendation: READY AFTER FIXES.** The code, security, and lock logic hold up. The fixes needed are a few user-facing wording overstatements and one missing test assertion. I modified no files and did not commit, push, open a PR, deploy, or touch Cloudflare. The only side effects were ignored build and test output, and a temporary copy of `HEAD` under `%TEMP%` that I deleted afterwards.
+
+## 1. File inventory and diff
+
+| Status | File |
+|---|---|
+| M | `README.md` (+70) |
+| M | `shared/contracts.ts` (+29) |
+| M | `src/components/Dashboard.tsx` (+2) |
+| M | `src/index.css` (+87) |
+| M | `tests/browser/app.spec.ts` (+107) |
+| M | `worker/api/router.ts` (+26/−1) |
+| M | `worker/auth/object.ts` (+7) |
+| M | `worker/auth/service.ts` (+31) |
+| ?? | `src/components/Diagnostics.tsx` (91 lines) |
+| ?? | `src/lib/diagnostics.ts` (75) |
+| ?? | `tests/diagnostics-api.test.ts` (266) |
+| ?? | `tests/diagnostics-lock.test.ts` (77) |
+| ?? | `tests/diagnostics.test.ts` (373) |
+| ?? | `tests/origin.test.ts` (57) |
+| ?? | `worker/dns/diagnostics.ts` (400) |
+
+- `git diff --check`: exit 0.
+- `git diff --quiet HEAD`: exit 1, which is expected because the changes are uncommitted.
+- No generated artifacts are tracked. `dist/`, `.wrangler/`, `test-results/`, and `node_modules/` are all gitignored.
+- `worker/index.ts`, `dns/proxy.ts`, `dns/wire.ts`, `config.ts`, `dns/providers.ts`, and `dns/ddr-checker.ts` are unchanged.
+
+## 2. C1: effective configuration. Verified
+
+- **Same path as `/dns-query`:** `router.ts` passes `effectiveConfig: () => activeConfig(env.CONFIG)`. That is the same function `index.ts` uses, with the same isolate cache. It also has the same failure behavior: if KV fails or returns null and a cached copy exists, `activeConfig` returns the cached copy.
+- **No misleading PASS:** `checkEffectiveDoh` returns PASS only when `effective.revision === saved.revision`. A revision mismatch turns PASS into `INCONCLUSIVE config-mismatch`. A failed query stays FAIL and gets a note about the revision difference.
+- **No fetch without valid settings:** when `activeConfig` throws, the result is `FAIL no-settings` and no query is sent. Test: "fails without querying…", which asserts `fetch` was never called.
+- **Settings-load timeout:** returns `INCONCLUSIVE timeout` with no fetch. Test: "is inconclusive, never PASS…".
+- **Edge-case tests in `diagnostics.test.ts`:** stale isolate cache (seeded with `refreshConfig`, where a direct KV read alone would have said PASS), KV ahead, KV behind, mismatch in the full report, and a real failure staying FAIL.
+- **`updatedAt` is only a hint:** the code comment in `direction()` says so, and the messages say "timestamped later/earlier… can happen / may". The README does not present `updatedAt` as proof of ordering.
+- **KV check vs end-to-end check:** the labels differ ("Settings in Workers KV" vs "End-to-end DoH query"). The KV PASS text says it was a direct read and that `/dns-query` may use a cached copy.
+- **Finding C1-a (wording):** `checkKv`'s `kv-missing` message says "/dns-query here cannot answer". That is too strong. If this isolate has a cached copy, `activeConfig` will still answer from it.
+
+## 3. C2: lock safety. Verified, with stated assumptions
+
+| Property | Status | Evidence |
+|---|---|---|
+| Token ownership | Verified | `endDiagnostic` deletes the lock only when `sameSecret(current.token, lease)` matches. Tests: a missing or foreign token gets `released:false`, and "late run cannot release newer run's lease". |
+| Constant-time comparison | Verified | `sameSecret` hashes both inputs with SHA-256 and XOR-compares the 43-character results over a fixed-length loop. Lease tokens are always 43-character base64url (`randomToken`, 32 bytes). |
+| Expired lock recovery | Verified | `startDiagnostic` replaces a lock whose `expiresAt` has passed. Test: "recovers from an expired lease…". |
+| Cleanup after an exception | Verified | Release happens in the router's `finally` block. Test: `diagnostics-lock.test.ts` mocks `runDiagnostics` to throw, then checks for a 503 with no internal text, that the lock is gone, and that the next run isn't blocked. |
+| Concurrent requests | Verified | The Durable Object serializes calls. Test: one of two simultaneous requests runs and the other gets 409, with exactly 2 fetches. |
+| Token never exposed | Verified | The lease token appears only in internal Durable Object calls (`git grep lease`). There are no `console.*` calls in `worker/` or `src/`, and `observability.enabled` is `false`. |
+| Storage failure | Code reading only, **not tested** | If `get` or `put` fails in `startDiagnostic`, the result is a 503 and no run starts. If `delete` fails in `endDiagnostic`, the router catches the error and the lock stays until it expires after 30 seconds. Both cases fail safe by blocking further runs. Neither allows overlapping runs. |
+| Overlap after expiry | Assumption | Overlap would need a run longer than 30 seconds. All three network checks are capped at 8 seconds and run in parallel, and `checkEffectiveDoh` gives the DoH query only the time left after loading settings. So a run takes about 8 seconds plus Durable Object latency. This bound comes from reading the code and relies on Workers timers firing on time. It is not tested. |
+
+## 4. C3/C4: wording and README claims
+
+**Verified:**
+- The sample URL decodes to exactly the `makeQuery('example.com')` bytes: ID 0, RD flag, `example.com`, type A, class IN. It is 39 characters (39 mod 4 = 3), so the proxy's base64url check accepts it.
+- The setup check uses `cloudflare-dns.com` (`ddr-checker.ts`).
+- The suggested SVCB record is `alpn="h3"` (`SvcbStep.tsx`).
+- The [specific VPN application redacted], Cloudflare IPv6, and RFC 9462 §5 citations match the sources I fetched earlier.
+- A live, read-only lookup confirmed that `dns.nextdns.io` has AAAA records (via `steering.nextdns.io`), so "a DoT hostname can also have AAAA records" is supported.
+
+**Too strong or inaccurate:**
+
+| ID | Location | Problem |
+|---|---|---|
+| W1 | `diagnostics.ts` `ip-enforcement` summary and README "IPv4 and IPv6" | Says "fetch() has no option". Only the absence of a *documented* option is verified. |
+| W2 | README VPN section, "there is no fallback path" | Android may still try DoT on port 853. The accurate claim is "no working fallback", since a Worker can't answer DoT. |
+| W3 | README test step 3, "A web page means a Cloudflare challenge or error" | The Worker's own JSON errors (502 or 503) also show up as text in the browser. It should separate JSON (from the Worker) from HTML (usually Cloudflare). |
+| W4 | `Diagnostics.tsx` note, "The DNS checks send one example.com A query" | Two checks each send one query. It should say "Each DNS check sends one…". |
+| C1-a | `checkKv` `kv-missing` | See section 2. |
+
+## 5. Tests (all run during this audit)
+
+| Command | Result |
+|---|---|
+| `npm run check` | Exit 0. Prettier clean, tsc clean, **98/98 tests in 12 files**, build succeeds. |
+| `git diff --check` | Exit 0 |
+| `npx playwright test --reporter=list` (working tree) | **3 passed, 3 failed** (tests #2, #3, #5) |
+| Same command on a `git archive HEAD` copy (071b08c) in `%TEMP%` | **2 passed, 3 failed**. The same tests (#2, #3, #5) fail with the same errors: missing heading "Your website is running", `locator.fill` timeout, and expected 401 but got 200. |
+
+The baseline comparison is now independently confirmed: the three failures happen without these changes, and the changes add one new test that passes.
+
+**UI note coverage:** no test checks the note (`git grep` found no matches). The connectivity E2E test is the natural place for one assertion.
+
+## Follow-up actions (not applied)
+
+1. **Wording fixes:** W1, W2, W3, W4, and C1-a. These change only message strings and README text, with no logic changes.
+2. **One E2E assertion:** check that the UI note is visible in the existing connectivity test.
+3. **Optional:** a unit test for storage failure in `startDiagnostic` and `endDiagnostic`.
+
+Shall I apply items 1 and 2, and item 3 as well? Once you approve, I'll rerun the full verification before any commit.
+
+
+=====================================================================
+PROMPT 7 (user): Approval of the wording corrections and UI assertion
+=====================================================================
+
+## Approved follow-up: Minimal wording corrections and UI assertion
+
+Apply **items 1 and 2 only** from the previous audit. Keep the patch minimal and limited strictly to the changes listed below.
+
+### 1. Correct the five audited wording issues
+
+Apply the previously identified corrections W1, W2, W3, W4, and C1-a:
+
+- **W1 — `fetch()` and IP-family selection:** Replace wording that implies `fetch()` has no option to select an IP family with the more precise statement that it has **no documented option** for explicitly selecting the IP family.
+- **W2 — DoT fallback:** Replace the absolute claim that there is “no fallback path” with wording that accurately states there is **no working DoT fallback provided by this Worker**. Do not imply that Android never attempts another transport.
+- **W3 — Browser-test interpretation:** Distinguish a Worker-generated JSON error response from an HTML error or challenge page, which is commonly associated with Cloudflare. Do not attribute every browser error page to Cloudflare without evidence.
+- **W4 — Diagnostics UI:** Change “The DNS checks send one example.com A query” to wording that makes clear that **each DNS check** sends one `example.com` A query.
+- **C1-a — Missing KV/configuration message:** Avoid claiming that `/dns-query` categorically “cannot answer” when KV configuration is missing. The message must account for the possibility that an isolate-level cache may still allow a request to be answered.
+
+Use the exact wording already proposed in the preceding audit wherever it is available. Otherwise, make the smallest technically accurate wording change that satisfies the correction. Do not change the underlying behavior.
+
+### 2. Add one Playwright UI assertion
+
+Extend the existing connectivity test, or the most appropriate existing test, with an assertion verifying that the new diagnostics limitation note is actually visible in the UI.
+
+Requirements:
+- Assert the user-visible text, not merely the existence of a component or DOM node.
+- Keep the assertion consistent with the actual wording rendered by the UI.
+- Avoid brittle selectors or unrelated test changes.
+- Confirm that the new assertion passes.
+
+### Strict scope restrictions
+
+Do **not** implement item 3 from the audit. Additional Durable Object storage-failure tests are explicitly deferred.
+
+Do not:
+- Refactor unrelated code.
+- Change DNS proxy behavior.
+- Change DDR/SVCB behavior.
+- Change configuration logic.
+- Change authentication or diagnostic-lock logic.
+- Add dependencies or modify project configuration unless strictly necessary for the two approved items.
+
+If you discover a problem that requires changes outside this scope, report it and stop rather than fixing it without approval.
+
+### Required verification
+
+After the changes, run and report the actual results of:
+
+1. `npm run check`
+2. `git diff --check`
+3. `npx playwright test --reporter=list`
+
+For each command, report the exit code and the relevant pass/fail counts or output.
+
+For Playwright:
+- Compare the results with the previously verified baseline.
+- The baseline had three known failures involving the expected page heading, the PIN-field locator, and an expected `401` response that instead returned `200`.
+- Do not assume those failures remain unchanged: verify the current output and compare the failure names, errors, and counts with the baseline evidence.
+- Explicitly confirm whether the new diagnostics limitation-note assertion passes.
+- State whether any new failures were introduced.
+
+If the baseline comparison cannot be reproduced or verified, clearly label it as unverified rather than presenting it as confirmed.
+
+### Final report
+
+Provide:
+- A concise list of the five wording corrections.
+- The file paths changed.
+- The exact verification results.
+- The Playwright baseline comparison.
+- Confirmation that the additional Durable Object storage-failure tests were not added.
+- Confirmation that all changes remain uncommitted.
+
+**Do not commit, push, create a pull request, deploy, or change any Cloudflare settings. Do not perform any publishing or recording Git operation. Stop after verification and wait for my explicit authorization before taking any further action.**
+
+=====================================================================
+RESPONSE 7 (AWS Kiro AI): Wording corrections and UI assertion report
+=====================================================================
+
+I made the five wording fixes and added the UI assertion. `npm run check` passes, and Playwright shows the same three failures as the baseline with no new ones. The new assertion passes. Everything is still uncommitted.
+
+## Wording fixes
+
+| ID | File | Change |
+|---|---|---|
+| W1 | `worker/dns/diagnostics.ts` (`ip-enforcement` summary) and `README.md` ("IPv4 and IPv6") | "has no option to choose…" → "has no **documented** option to explicitly select (or enforce) the IP family…" |
+| W2 | `README.md` (VPN troubleshooting) | "there is no fallback path" → "this Worker provides no working DoT fallback. Android may still try DoT on port 853, but nothing there answers for a Loophole hostname." |
+| W3 | `README.md` (test step 3) | Now tells the three outcomes apart: a downloaded file is a DNS answer from the Worker, a short JSON error comes from the Worker itself, and an HTML error or challenge page is commonly served by Cloudflare before the Worker runs. |
+| W4 | `src/components/Diagnostics.tsx` (the limitation note) | "The DNS checks send one…" → "**Each DNS check** sends one example.com A query…" |
+| C1-a | `worker/dns/diagnostics.ts` (`checkKv`, `kv-missing` message) | "…so /dns-query here cannot answer." → "…/dns-query here can only answer from a short-lived cached copy, if one exists." |
+
+I left the `no-settings` message ("cannot answer DNS queries here") unchanged on purpose. It only appears when `activeConfig` itself fails with no cached copy, so `/dns-query` would also return 503 in that isolate and the message is accurate.
+
+## UI assertion
+
+In `tests/browser/app.spec.ts`, inside the existing "runs the connectivity test only on demand…" test, I added a `page.getByText(<full note text>)` check with `.toBeVisible()`. It matches the full text the user sees, not a CSS class. No other test lines changed.
+
+## Files changed in this patch
+
+`README.md`, `worker/dns/diagnostics.ts`, `src/components/Diagnostics.tsx`, `tests/browser/app.spec.ts`. No logic changed. The DNS proxy, DDR/SVCB, configuration, authentication, lock code, dependencies, and project config are untouched.
+
+## Verification
+
+| Command | Exit code | Result |
+|---|---|---|
+| `npm run check` | 0 | Prettier clean, tsc clean, 98/98 tests in 12 files, build succeeds |
+| `git diff --check` | 0 | No whitespace errors |
+| `npx playwright test --reporter=list` | 1 | 3 passed, 3 failed |
+
+## Playwright compared with the baseline
+
+The baseline is the run of the `HEAD` copy (071b08c) in the previous audit: 2 passed, 3 failed.
+
+| Test | Baseline (HEAD) | Now | Error now |
+|---|---|---|---|
+| #1 custom-domain handoff | ok | ok | – |
+| #2 minimal setup… | x | x | `getByRole('heading', { name: 'Your website is running' })` not found |
+| #3 fresh browser DNS… | x | x | `locator.fill` timed out after 30000 ms |
+| #4 real upstream DNS | ok | ok | – |
+| #5 management API auth | x | x | Expected 401, received 200 |
+| #6 connectivity test (new) | not in baseline | **ok** | – |
+
+The same three tests fail with the same errors, and nothing new fails. Test #6 passes, which means the limitation-note assertion passed too.
+
+## Scope
+
+- I did not add the Durable Object storage-failure tests (item 3).
+- I made no commit, push, PR, deploy, or Cloudflare change, and ran no Git operations that write anything. `git status --short` shows the same 8 modified and 7 untracked files as before.
+
+When you authorize it, I'll commit, push to `ondern/loophole`, and open the PR against `eyalm2000/loophole` `main`.
+
+=====================================================================
+PROMPT 8 (user): Final read-only audit
+=====================================================================
+
+# Final Read-Only Audit — Loophole Diagnostics Changes
+
+Perform a final, strictly read-only audit of the current working tree for the previously approved diagnostics changes.
+
+**This is an inspection-only task. Do not modify files, run code fixes, or change Git state.**
+
+## 1. Verify the five wording corrections
+
+Inspect the actual current file contents and diffs. Verify each item individually against the requirements below:
+
+- **W1 — IP-family selection:** The wording must say that `fetch()` has no *documented* option to explicitly select or enforce an IP family. It must not make an absolute claim that no such option exists.
+- **W2 — DoT fallback:** The documentation must state that this Worker provides no working DoT fallback, without claiming that Android never attempts DoT or another transport.
+- **W3 — Browser-test interpretation:** The documentation must distinguish a DNS answer downloaded from the Worker, a JSON error returned by the Worker, and an HTML error or challenge page commonly served by Cloudflare before the Worker runs. Ensure the wording does not present the source of every HTML error as certain.
+- **W4 — Diagnostics UI:** The limitation note must clearly state that **each DNS check** sends one `example.com` A query.
+- **C1-a — Missing KV/configuration message:** The message must not categorically claim that `/dns-query` cannot answer when KV configuration is missing if an isolate-level cached copy may still exist. Verify that the wording accurately describes this possibility.
+
+For each item, report:
+1. `PASS`, `FAIL`, or `UNVERIFIED`.
+2. The actual current wording.
+3. The file path and relevant line or diff.
+4. A brief explanation of whether it satisfies the requirement.
+
+Do not infer that a change exists merely because it was reported earlier.
+
+## 2. Verify the Playwright assertion
+
+Inspect the actual test and the UI component.
+
+Confirm:
+- The assertion checks the complete or appropriately scoped user-visible limitation text.
+- It uses a visibility assertion such as `.toBeVisible()`.
+- The expected text matches the current rendered UI text.
+- The assertion is located in the intended connectivity test.
+- The assertion does not rely solely on a CSS class or hidden DOM element.
+
+Report the exact assertion and its location. If you cannot establish a point from the source, mark it `UNVERIFIED`.
+
+Do not change the test.
+
+## 3. Audit the change scope
+
+Inspect the current working-tree changes and compare them with the previously reported scope.
+
+Previously reported files:
+
+**Modified:**
+- `README.md`
+- `shared/contracts.ts`
+- `src/components/Dashboard.tsx`
+- `src/index.css`
+- `tests/browser/app.spec.ts`
+- `worker/api/router.ts`
+- `worker/auth/object.ts`
+- `worker/auth/service.ts`
+
+**Untracked:**
+- `src/components/Diagnostics.tsx`
+- `src/lib/diagnostics.ts`
+- `tests/diagnostics-api.test.ts`
+- `tests/diagnostics-lock.test.ts`
+- `tests/diagnostics.test.ts`
+- `tests/origin.test.ts`
+- `worker/dns/diagnostics.ts`
+
+Use read-only inspection commands as appropriate, including:
+- `git status --short`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git ls-files --others --exclude-standard`
+
+Inspect the relevant diffs to determine whether the five wording fixes and UI assertion are the only changes made in the latest follow-up. Distinguish the earlier diagnostics implementation from the latest wording/test patch.
+
+Report:
+- The exact current modified and untracked file lists.
+- Whether any unexpected files or changes were found.
+- Whether the current state is consistent with the previously reported file inventory.
+
+Do not stage, commit, reset, stash, or otherwise change Git state.
+
+## 4. Verify publication status
+
+Use read-only evidence to confirm the current local Git state.
+
+Report whether:
+- The working-tree changes remain uncommitted.
+- Any staged changes exist.
+- You have evidence of a commit, push, pull request, deployment, or Cloudflare configuration change associated with this follow-up.
+
+Do not claim to have verified external actions if the available local evidence cannot establish them. Clearly distinguish verified facts from unavailable evidence.
+
+## 5. Rules and final report
+
+- Do not edit, create, delete, or format files.
+- Do not implement additional tests.
+- Do not alter DNS proxy behavior, DDR/SVCB behavior, configuration logic, authentication, or diagnostic-lock logic.
+- Do not commit, push, create a PR, deploy, or change Cloudflare settings.
+- Do not run commands that write to the repository or change Git state.
+- If an inspection command would modify files or state, do not run it.
+
+Return a concise audit report containing:
+1. A five-item wording verification table.
+2. The exact Playwright assertion and its verification result.
+3. The current Git status and file inventory.
+4. Any discrepancies, uncertainties, or limitations.
+
+**Stop after the audit. Wait for my explicit authorization before making any changes or taking any publishing action.**
+
+=====================================================================
+RESPONSE 8 (AWS Kiro AI): Final read-only audit report
+=====================================================================
+
+# Final read-only audit: diagnostics changes
+
+All five wording fixes and the Playwright assertion are present in the current files, and the old wording is gone. The file list matches the earlier report exactly. Nothing is staged or committed, and nothing has been pushed or opened as a PR.
+
+I only used read-only commands (`git --no-optional-locks …`, `git grep`, `Select-String`, and two read-only GitHub API calls). I did not rerun tests, because Playwright and the build write output to `test-results/`, `.wrangler/` and `dist/`.
+
+## 1. Wording fixes
+
+| ID | Result | Current wording | Location | Why |
+|---|---|---|---|---|
+| W1 | PASS | "the Workers `fetch()` API has no documented option to explicitly select or enforce the IP family of outbound connections…" and "Cloudflare Workers fetch() has no documented option to explicitly select the IP family of outbound connections…" | `README.md:138`; `worker/dns/diagnostics.ts:391` | Both say "documented". A search for "has no option" finds nothing. |
+| W2 | PASS | "…this Worker provides no working DoT fallback. Android may still try DoT on port 853, but nothing there answers for a Loophole hostname." | `README.md:148` | It allows that Android may try DoT. "no fallback path" no longer appears. |
+| W3 | PASS | "A downloaded file means the Worker returned a DNS answer. A short JSON error message comes from the Worker itself. An HTML error or challenge page is commonly served by Cloudflare before the Worker runs." | `README.md:170` (table row 3) | It separates the three cases and only says "commonly" for HTML. "A web page means" no longer appears. |
+| W4 | PASS | "Each DNS check sends one example.com A query. A pass shows only that this query got a valid answer. It does not test your NextDNS filtering rules, account settings, or other record types." | `src/components/Diagnostics.tsx:82–86` (`<p className="diagnostics-note">`) | The old "The DNS checks send" text no longer appears. |
+| C1-a | PASS | "Workers KV has no settings at this location. /dns-query here can only answer from a short-lived cached copy, if one exists." | `worker/dns/diagnostics.ts:234–235` (`checkKv`, `kv-missing`) | It mentions the isolate cache. The old "cannot answer" phrase no longer appears. |
+
+The `no-settings` message at `diagnostics.ts:289` was left as is on purpose. That branch (`loaded.kind === 'error'`, line 286) only runs when `activeConfig` itself fails with no cached copy, so "cannot answer" is accurate there.
+
+## 2. Playwright assertion
+
+It is at `tests/browser/app.spec.ts:385–389`, inside `test('runs the connectivity test only on demand and shows each result', …)`, which starts at line 281:
+
+```ts
+await expect(
+  page.getByText(
+    'Each DNS check sends one example.com A query. A pass shows only that this query got a valid answer. It does not test your NextDNS filtering rules, account settings, or other record types.',
+  ),
+).toBeVisible();
+```
+
+| Check | Result |
+|---|---|
+| Matches the full visible text, not a CSS class | PASS |
+| Uses `.toBeVisible()` | PASS |
+| Is in the connectivity test | PASS |
+| Text matches the source in `Diagnostics.tsx` | PASS. The JSX line breaks collapse to single spaces when rendered. |
+| Text matches what is actually rendered right now | UNVERIFIED in this audit, because tests were not rerun. The last real evidence is the previous turn's run, where test #6 passed. |
+
+## 3. Git status and file inventory
+
+- **Modified (8, unstaged):** `README.md`, `shared/contracts.ts`, `src/components/Dashboard.tsx`, `src/index.css`, `tests/browser/app.spec.ts`, `worker/api/router.ts`, `worker/auth/object.ts`, `worker/auth/service.ts`.
+- **Untracked (7):** `src/components/Diagnostics.tsx`, `src/lib/diagnostics.ts`, `tests/diagnostics-api.test.ts`, `tests/diagnostics-lock.test.ts`, `tests/diagnostics.test.ts`, `tests/origin.test.ts`, `worker/dns/diagnostics.ts`.
+- `git diff --stat`: 8 files, +364/−1. `tests/browser/app.spec.ts` grew from +107 to +112, which matches the 5-line assertion. `README.md` is still +70 because the wording was replaced in place.
+- `git diff --check`: exit 0.
+- **Consistency:** the lists match the earlier report exactly. I found no unexpected files.
+
+## 4. Publication status
+
+| Item | Evidence | Status |
+|---|---|---|
+| Uncommitted | `HEAD` is still `071b08c` (same as `main`, `origin/main`, `upstream/main`). | Verified |
+| Nothing staged | `git diff --cached --quiet` exit 0, and `--cached --name-only` is empty. | Verified |
+| No push | `feature/my-changes` has no upstream. `gh api repos/ondern/loophole/branches/feature%2Fmy-changes` returns HTTP 404. | Verified |
+| No PR | `gh api repos/eyalm2000/loophole/pulls?state=all&head=ondern:feature/my-changes` returns 0. | Verified |
+| No deploy or Cloudflare change | No local evidence either way. Wrangler isn't authenticated to any account, and I have no Cloudflare access. | Unverified (no evidence available) |
+
+## 5. Gaps and minor observations
+
+1. **Latest patch vs. earlier work:** there is no commit between the Phase 2 work and the latest follow-up, so Git can't isolate the latest patch by itself. The evidence is that the new strings are present, the old ones are absent, and `app.spec.ts` grew by 5 lines. A byte-level diff of only the follow-up is not possible.
+2. **README:151** says "Loophole cannot choose the IP family on either side." That line is about Loophole's own capability, which follows from line 138, and was outside the W1 scope. You could soften it to "has no documented way to choose".
+3. **W2 "nothing there answers for a Loophole hostname":** this claim that port 853 doesn't answer for a Workers custom domain is based on Workers being HTTP-only. It was not tested against a real deployment.
+4. **Tests not rerun:** the last results (`npm run check` 98/98 passing; Playwright 3 passed, 3 failed with the same failures as the `HEAD` baseline) come from the previous turn.
+5. **Reading the README test step:** the "short JSON error comes from the Worker" sentence is phrased as certain. That is accurate for this Worker's own errors, but a JSON error from another source in the path can't be ruled out.
+
+I'll wait for your authorization before making changes or publishing anything.
+
+=====================================================================
+PROMPT 9 (user): Final execution task (commit, deploy, open the PR)
+=====================================================================
+
+Summary of this prompt (the full text is long and mostly procedural):
+
+- Run final verification (`npm run check`, `git diff --check`,
+  `npx playwright test --reporter=list`) and compare Playwright with
+  the known baseline (three pre-existing failures: missing page
+  heading, PIN-field locator timeout, expected 401 but got 200).
+- Create this file, `docs/ai-assisted-development-log.txt`, with the
+  technical prompts and AWS Kiro AI responses. Redact the specific VPN
+  application name as "[specific VPN application redacted]", remove
+  secrets, and disclose any unavailable content.
+- Create one commit with only the diagnostics changes, the approved
+  corrections, and this log. Push it to `ondern/loophole`, branch
+  `feature/my-changes`. No force-push and no history rewrite.
+- Open a PR from `ondern/loophole:feature/my-changes` to
+  `eyalm2000/loophole:main` with "Related to #2" (not "Closes #2"),
+  state that AWS Kiro AI assisted, and state that no live
+  real-device VPN test was performed. Do not name the specific VPN
+  application in the title, description, or this log.
+- Deploy to Cloudflare only if the authenticated account and the
+  target Worker are unambiguous and the deployment would not change
+  DNS records, secrets, bindings, or unrelated settings. Otherwise,
+  report deployment as blocked with the exact reason.
+- Do not claim the VPN issue is fixed.
+
+=====================================================================
+RESPONSE 9 (AWS Kiro AI): Blockers before commit
+=====================================================================
+
+I've stopped before staging or committing. Verification passes, and the log file is ready. There are two blockers: the README names the specific VPN app, and deployment isn't possible without Cloudflare login and a confirmed target.
+
+## Verification (this run)
+
+| Command | Exit code | Result |
+|---|---|---|
+| `npm run check` | 0 | Prettier clean, tsc clean, 98/98 tests in 12 files, build succeeds |
+| `git diff --check` | 0 | No whitespace errors |
+| `npx playwright test --reporter=list` | 1 | 3 passed, 3 failed |
+
+The Playwright result matches the baseline. The same tests fail with the same errors: #2 can't find the "Your website is running" heading, #3 times out on `locator.fill` after 30 s, and #5 expects 401 but gets 200. Nothing new fails, and test #6 (the connectivity test, which includes the limitation-note assertion) passes.
+
+My first Playwright attempt was interrupted and left its dev servers running on ports 8787 and 5173. I stopped only those processes: `workerd`, `vite` and the `wrangler` parents from this repo's `node_modules`. Then I reran the suite and got the results above.
+
+## Technical log
+
+`docs/ai-assisted-development-log.txt` is created and untracked. It is 131 KB, plain UTF-8 with no BOM and LF line endings.
+- It covers Prompts 1–9 and the matching responses, each labeled. Prompt 3 is marked as having no response, because that tool call was cancelled. Prompt 9 is given as a labeled summary, and its response is not included.
+- I left out the earlier Git and `gh auth` setup exchange, because it contained a one-time device code, and all tool output.
+- The VPN app name appears 24 times as `[specific VPN application redacted]`. Its DNS-filtering feature name and vendor URLs are redacted too, and the header explains each redaction.
+- A scan found no VPN name, no local user path, and no token, cookie, key or password pattern.
+
+## Blocker 1: the README names the VPN app
+
+The C4 troubleshooting section you approved names it in `README.md` lines 143, 150, 164 and 174: "[specific VPN application redacted]", "[VPN DNS-filtering feature name redacted]", and two [VPN vendor support URL redacted] links. That text would be public in the PR diff. Your rule covered the title, description and log, and the README seems to fall under the same intent.
+
+The smallest fix is to make the wording generic:
+- **Line 143:** "while a VPN is connected"
+- **Line 150:** "Some VPN apps route DNS through their tunnel and recommend not using Private DNS, DoH, or DoT with them. Some also have DNS-filtering features that cannot be combined with custom DNS. Check your VPN provider's documentation." This drops the two vendor links.
+- **Lines 164 and 174:** replace "[VPN DNS-filtering feature name redacted]" with "any DNS-filtering feature" or "the VPN's DNS-filtering feature".
+
+Issue #2's own title and body also name the app. The PR will only link to it with "Related to #2".
+
+## Blocker 2: deployment
+
+- `npx wrangler whoami` says "You are not authenticated", so I can't see which account or Worker is the target.
+- `wrangler.jsonc` declares the KV binding without a namespace ID. A local `wrangler deploy` might provision a new KV namespace instead of reusing the existing one. I haven't verified which would happen.
+- If your Worker was set up with the "Deploy to Cloudflare" button, Cloudflare Workers Builds probably deploys it from your fork's Git branch. In that case a local deploy would be a second, competing deployment path. I haven't verified this either.
+
+To proceed, run `npx wrangler login` and tell me the Worker name and account, or tell me if deploys go through Workers Builds.
+
+## Decision needed
+
+1. **README:** apply the generic wording above, or keep it as is?
+2. **Deployment:** skip it for now and open the PR, or wait until you've logged in to Wrangler and confirmed the target?
+
+Once you answer, I'll stage only the 15 diagnostics files and the log, make one commit, push to `ondern/loophole:feature/my-changes`, open the PR with "Related to #2", and verify the result.
+
+=====================================================================
+PROMPT 10 (user): Final tech prompt (complete the PR)
+=====================================================================
+
+Summary of this prompt (not verbatim):
+
+- Make the README VPN wording generic: "while a VPN is connected";
+  replace the vendor-specific bullet with "Some VPN apps route DNS
+  through their tunnel and recommend not using Private DNS, DoH, or
+  DoT with them. Some also have DNS-filtering features that cannot be
+  combined with custom DNS. Check your VPN provider's documentation.";
+  replace the filtering-feature name with "any DNS-filtering feature"
+  or "the VPN's DNS-filtering feature".
+- Search the full PR diff and this log for VPN application names,
+  vendor DNS-filtering product names, and vendor URLs, and remove
+  them. Do not modify the upstream issue.
+- Commit this log as part of the PR, with labeled prompts and
+  responses and disclosed summaries or unavailable messages.
+- Run `npm run check`, `git diff --check`, and
+  `npx playwright test --reporter=list`, and compare Playwright with
+  the three known baseline failures.
+- Stage only the intended files, make one commit
+  ("Add DNS connectivity diagnostics"), push to
+  `ondern/loophole:feature/my-changes` without force-pushing, and
+  open a PR to `eyalm2000/loophole:main` titled "Add DNS connectivity
+  diagnostics and troubleshooting", with "Related to #2".
+- Do not deploy. Do not trigger Workers Builds or change any
+  Cloudflare settings. Record deployment as deferred.
+- Verify the remote state after pushing and opening the PR.
+
+=====================================================================
+END OF LOG
+=====================================================================

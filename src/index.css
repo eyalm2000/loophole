@@ -466,6 +466,93 @@ fieldset {
 .copy-button:hover {
   color: #fff;
 }
+.diagnostics {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 0 28px;
+}
+.diagnostics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.diagnostics-summary {
+  font-size: 13px;
+  color: #b5b5b5;
+}
+.diagnostic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.diagnostic-item {
+  border: 1px solid #292929;
+  border-left-width: 3px;
+  border-radius: 6px;
+  background: #080808;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #b5b5b5;
+}
+.diagnostic-item p {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+.diagnostic-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.diagnostic-title strong {
+  font-weight: 400;
+  color: #d4d4d4;
+}
+.diagnostic-status {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.diagnostic-duration {
+  margin-left: auto;
+  color: #737373;
+}
+.diagnostic-remedy {
+  color: #d4d4d4;
+}
+.diagnostics-note {
+  font-size: 11px;
+  color: #919191;
+}
+.diagnostic-item[data-status='PASS'] {
+  border-left-color: #294434;
+}
+.diagnostic-item[data-status='PASS'] .diagnostic-status {
+  color: #86b89a;
+}
+.diagnostic-item[data-status='FAIL'] {
+  border-left-color: #4b3030;
+}
+.diagnostic-item[data-status='FAIL'] .diagnostic-status {
+  color: #c58c8c;
+}
+.diagnostic-item[data-status='INCONCLUSIVE'] {
+  border-left-color: #4a4126;
+}
+.diagnostic-item[data-status='INCONCLUSIVE'] .diagnostic-status {
+  color: #c9b27a;
+}
+.diagnostic-item[data-status='UNSUPPORTED'] {
+  border-left-color: #3a3a3a;
+  border-left-style: dashed;
+}
+.diagnostic-item[data-status='UNSUPPORTED'] .diagnostic-status {
+  color: #919191;
+}
 .dashboard-actions {
   display: flex;
   align-items: center;

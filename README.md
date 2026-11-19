@@ -103,6 +103,76 @@ To revert back:
 adb shell device_config set_sync_disabled_for_tests none
 ```
 
+## Connectivity test
+
+The dashboard has a **Test connectivity** button. It runs once per click, never in the background, and only one test can run at a time per gateway. It shares the resolver-test rate limit (12 per minute). Each check reports one of four results:
+
+- `PASS`: the check ran and its success conditions were verified.
+- `FAIL`: the check ran and a known condition failed.
+- `INCONCLUSIVE`: there was not enough evidence to decide.
+- `UNSUPPORTED`: this deployment cannot perform the check.
+
+A timeout, a skipped check, or missing data is never reported as `PASS`.
+
+| Check                                   | Runs in       | What a `PASS` shows                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Worker and Durable Object               | Worker        | The Worker handled the request, and its Durable Object validated your session and returned your saved settings.                                                                                                                                                                                                                                                                                  |
+| Settings in Workers KV                  | Worker        | A direct KV read at the Cloudflare location that served you returned the same settings revision the dashboard saved. A different revision (older or newer) is `INCONCLUSIVE`. Right after a save this is normal for up to a minute.                                                                                                                                                              |
+| Custom domain from this browser         | Your browser  | This browser reached your custom domain over HTTPS and got a valid Loophole response. It does not prove public DNS propagation or reachability from other networks. If the dashboard is open on another address, the result is `INCONCLUSIVE`.                                                                                                                                                   |
+| End-to-end DoH query                    | Worker        | A fixed query went through the same handler that serves `/dns-query`, using the settings `/dns-query` uses at that location right now (including its short cache), which matched the saved revision. It returned a valid `NOERROR` answer with the same transaction ID and question. If the revisions differ, the result is `INCONCLUSIVE`. If `/dns-query` has no valid settings, it is `FAIL`. |
+| Saved upstream resolver                 | Worker        | Your saved resolver answered the fixed query directly with a valid, matching `NOERROR` answer.                                                                                                                                                                                                                                                                                                   |
+| Observed client-to-Cloudflare IP family | Worker        | Cloudflare's `CF-Connecting-IP` / `CF-Connecting-IPv6` metadata shows whether this browser reached Cloudflare over IPv4 or IPv6. It shows nothing about your phone or about Cloudflare's connection to the resolver.                                                                                                                                                                             |
+| IPv4-only / IPv6-only enforcement       | Not performed | Always `UNSUPPORTED`. See below.                                                                                                                                                                                                                                                                                                                                                                 |
+
+The test query is always `example.com`, type `A`, with a new random non-zero transaction ID. The Worker only uses your saved settings and ignores anything the browser sends, so the test cannot be pointed at another server. Results include no upstream URL, NextDNS profile ID, device name, IP address, or DNS packet. The Worker logs nothing.
+
+A `PASS` on the DNS checks shows only that this one `example.com` A query got a valid answer. It does not show that your NextDNS filtering rules, account settings, or other record types work.
+
+When the resolver check fails, its result names the cause: a request failure before any HTTP response (connection, TLS, or another runtime fetch error, which the runtime does not tell apart), timeout (8 seconds), HTTP status, redirect, wrong content type, malformed DNS message, transaction ID mismatch, question mismatch, or a DNS error code such as `SERVFAIL`. In a browser, the custom-domain check cannot tell DNS, TLS, and routing failures apart, so it reports them together.
+
+### IPv4 and IPv6
+
+Loophole has no IPv4-only or IPv6-only mode, and the connectivity test does not test one.
+
+- **Phone to Cloudflare:** your phone's network and the A/AAAA records Cloudflare publishes for your domain decide the IP family. Worker code cannot change it.
+- **Cloudflare to your resolver:** the Workers `fetch()` API has no documented option to explicitly select or enforce the IP family of outbound connections, so Loophole cannot force or verify IPv4 or IPv6 here.
+- **SVCB record:** `alpn="h3"` or `alpn="h2"` selects the HTTP version, not IPv4 or IPv6. The `ipv4hint` and `ipv6hint` parameters are hints, not enforcement.
+
+### Troubleshooting with a VPN
+
+Some users report that Private DNS with a Loophole hostname stops working while a VPN is connected, while a provider's own DNS-over-TLS hostname (for example NextDNS) keeps working. The root cause has not been confirmed. This section separates what is known from what still needs testing.
+
+**Known facts**
+
+- A Loophole hostname has a single transport: DNS-over-HTTPS that Android finds through the `_dns.<hostname>` SVCB record (DDR). Loophole's suggested record advertises only `h3`, so Android connects over HTTP/3, which runs on QUIC over UDP port 443.
+- A Worker cannot serve DNS-over-TLS on port 853. If Android cannot discover the SVCB record or cannot connect over HTTP/3, this Worker provides no working DoT fallback. Android may still try DoT on port 853, but nothing there answers for a Loophole hostname. A provider's DoT hostname uses TCP port 853 and does not depend on DDR, which is why it can behave differently.
+- The setup check reads the SVCB record through Cloudflare's public resolver. It does not show what the resolver your phone uses while the VPN is on returns. DDR allows that lookup to go through any resolver (RFC 9462, section 5).
+- Some VPN apps route DNS through their tunnel and recommend not using Private DNS, DoH, or DoT with them. Some also have DNS-filtering features that cannot be combined with custom DNS. Check your VPN provider's documentation.
+- Cloudflare publishes A and AAAA records for proxied hostnames. On non-Enterprise plans, IPv6 compatibility cannot be turned off ([IPv6 compatibility](https://developers.cloudflare.com/network/ipv6-compatibility/)). Loophole cannot choose the IP family on either side.
+- The dashboard's IP-family result describes only the browser running the test. It says nothing about the IP family your phone's Private DNS connection uses.
+
+**Hypotheses (unconfirmed)**
+
+1. While the VPN is on, the resolver Android uses does not return the SVCB record, so Android never learns about DoH.
+2. QUIC (UDP 443) does not get through the VPN tunnel, for example with a TCP-based VPN protocol.
+3. The phone tries IPv6 for the Loophole hostname while the tunnel blocks IPv6. Note that a provider's DoT hostname can also have AAAA records.
+4. Cloudflare security features (Bot Fight Mode, Security Level, WAF rules) challenge requests from VPN addresses before the Worker runs.
+5. Android or GrapheneOS handles Private DNS on VPN networks differently.
+
+**Tests**
+
+Change one setting at a time. Write down the VPN protocol, any DNS-filtering feature, custom DNS, and kill switch settings first. Do not leave any protection turned off.
+
+| Step | What to do                                                                                                                                                                                                                                                                                                                                                                                | What it can show                                                                                                                                                           | What it cannot show                                     |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 1    | VPN off, Loophole hostname: save the output of `adb shell dumpsys dnsresolver`. The output format depends on the Android version.                                                                                                                                                                                                                                                         | A reference for how a working DoH setup looks on this device.                                                                                                              | Anything about the VPN.                                 |
+| 2    | VPN on, Loophole hostname: save the same output, and `adb logcat -d` filtered for `DnsResolver` or `PrivateDns`.                                                                                                                                                                                                                                                                          | If no DoH server appears and only port 853 is tried, discovery is failing (hypothesis 1). If a DoH server appears but validation fails, the transport is (hypotheses 2–4). | Which transport problem it is.                          |
+| 3    | VPN on, Private DNS set to the provider's DoT hostname so the phone is online. In a browser, open `https://<hostname>/dns-query?dns=AAABAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE`. A downloaded file means the Worker returned a DNS answer. A short JSON error message comes from the Worker itself. An HTML error or challenge page is commonly served by Cloudflare before the Worker runs. | Whether HTTPS over TCP through the VPN reaches the Worker (hypothesis 4).                                                                                                  | Anything about HTTP/3, because the browser may use TCP. |
+| 4    | Same state: run **Test connectivity** in the dashboard.                                                                                                                                                                                                                                                                                                                                   | Whether the Worker can reach the upstream resolver.                                                                                                                        | Anything about the phone's Private DNS path.            |
+| 5    | Same state: open an IPv6 test site and an HTTP/3 test site.                                                                                                                                                                                                                                                                                                                               | Whether the tunnel carries IPv6 (hypothesis 3) and QUIC (hypothesis 2) to those sites.                                                                                     | Whether the same applies to your hostname.              |
+| 6    | On a computer connected to the same VPN server, compare `dig _dns.<hostname> SVCB` with `dig @1.1.1.1 _dns.<hostname> SVCB`.                                                                                                                                                                                                                                                              | Whether the VPN's resolver returns the SVCB record (hypothesis 1).                                                                                                         | That Android uses that resolver.                        |
+| 7    | If step 6 returns no record: turn off only the VPN's DNS-filtering feature, repeat step 2, then turn it back on. If step 2 points at the transport: change only the VPN protocol and repeat step 2.                                                                                                                                                                                       | Which single setting changes the outcome.                                                                                                                                  | Why the setting has that effect.                        |
+
 ## Privacy & Security
 
 Loophole has no analytics, tracking, or ads.

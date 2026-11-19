@@ -4,8 +4,9 @@ import { propagationNotice } from '../../shared/contracts';
 import { validateConfig } from '../../shared/validation';
 import { digest } from '../auth/crypto';
 import { HttpError, json, readJson, requireOrigin } from '../errors';
-import { refreshConfig } from '../config';
+import { activeConfig, refreshConfig } from '../config';
 import { verifyDomain } from '../dns/ddr-checker';
+import { runDiagnostics } from '../dns/diagnostics';
 import { handleDns } from '../dns/proxy';
 import { makeQuery } from '../dns/wire';
 
@@ -19,6 +20,7 @@ const routes: Record<string, string[]> = {
   '/api/config': ['GET', 'PUT'],
   '/api/verify-domain': ['POST'],
   '/api/test': ['POST'],
+  '/api/diagnostics': ['POST'],
   '/api/status': ['GET'],
 };
 export async function api(request: Request, env: Env): Promise<Response> {
@@ -137,6 +139,29 @@ export async function api(request: Request, env: Env): Promise<Response> {
         latencyMs: Date.now() - start,
         provider: config.provider,
       });
+    }
+    case '/api/diagnostics': {
+      // The request body is ignored: diagnostics only use the saved, validated settings.
+      const started = Date.now();
+      const { config, lease } = await call<{ config: Config; lease: string }>('diagnostics-start', {
+        client: await client(),
+      });
+      const applicationMs = Date.now() - started;
+      try {
+        return json(
+          await runDiagnostics({
+            config,
+            requestUrl: request.url,
+            headers: request.headers,
+            kv: env.CONFIG,
+            effectiveConfig: () => activeConfig(env.CONFIG),
+            applicationMs,
+          }),
+        );
+      } finally {
+        // Release only this run's lease; on failure it expires after 30 seconds.
+        await call('diagnostics-end', { lease }).catch(() => undefined);
+      }
     }
     default:
       throw new HttpError(404, 'API route not found.');

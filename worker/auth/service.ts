@@ -150,6 +150,33 @@ export class AuthService {
     else await this.storage.put('draft', saved);
     return saved;
   }
+  // One connectivity test at a time per gateway. The Durable Object serializes these calls,
+  // so the check and the lease write cannot interleave.
+  async startDiagnostic(token: string, client: string): Promise<{ config: Config; lease: string }> {
+    await this.owner();
+    const config = await this.config(token);
+    const now = Date.now();
+    const current = await this.storage.get<Lease>('diagnostic:lease');
+    // An expired lease (for example from a crashed run) is simply replaced.
+    if (current && typeof current.expiresAt === 'number' && current.expiresAt > now)
+      throw new HttpError(409, 'A connectivity test is already running. Wait for it to finish.', {
+        'retry-after': String(Math.ceil((current.expiresAt - now) / 1000)),
+      });
+    await this.limit(client, 'diagnostic', 12);
+    const lease = randomToken();
+    await this.storage.put('diagnostic:lease', { token: lease, expiresAt: now + 30000 });
+    return { config, lease };
+  }
+  // The lease token never leaves the Worker, so it alone authorizes the release. This still
+  // works if the session expired mid-run, and a late run cannot release a newer run's lease.
+  async endDiagnostic(lease: unknown): Promise<boolean> {
+    if (typeof lease !== 'string' || !lease) return false;
+    const current = await this.storage.get<Lease>('diagnostic:lease');
+    if (!current || typeof current.token !== 'string') return false;
+    if (!(await sameSecret(current.token, lease))) return false;
+    await this.storage.delete('diagnostic:lease');
+    return true;
+  }
   async changePin(token: string, current: string, next: string, client: string): Promise<void> {
     await this.session(token);
     await this.limit(client);
@@ -174,6 +201,10 @@ export class AuthService {
     for (const [key, value] of await this.storage.list<{ reset: number }>('limit:'))
       if (value.reset + 86400000 <= now) await this.storage.delete(key);
   }
+}
+interface Lease {
+  token: string;
+  expiresAt: number;
 }
 interface Owner {
   salt: string;

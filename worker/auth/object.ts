@@ -40,6 +40,7 @@ export class AuthObject {
         config: unknown;
         host: string;
         hostname: string;
+        lease?: unknown;
       };
       let result: unknown;
       switch (input.action) {
@@ -86,6 +87,12 @@ export class AuthObject {
           await this.service.session(input.token);
           await this.service.limit(input.client, 'diagnostic', 12);
           result = { ok: true };
+          break;
+        case 'diagnostics-start':
+          result = await this.service.startDiagnostic(input.token, input.client);
+          break;
+        case 'diagnostics-end':
+          result = { released: await this.service.endDiagnostic(input.lease) };
           break;
         case 'verify-domain':
           await this.service.session(input.token);
