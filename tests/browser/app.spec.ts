@@ -277,3 +277,115 @@ test('management API requires authentication and rejects foreign origins', async
   ).toBe(403);
   expect((await request.get('http://127.0.0.1:8787/api/unknown')).status()).toBe(404);
 });
+
+test('runs the connectivity test only on demand and shows each result', async ({ page }) => {
+  const config = {
+    ...initialConfig,
+    domain: 'dns.example.com',
+    onboardingComplete: true,
+    onboardingStep: 9,
+    revision: 'saved',
+  };
+  let runs = 0;
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/^https:\/\/dns\.example\.com\//, async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === '/api/setup-state') return route.fulfill({ json: { initialized: true } });
+    if (url.pathname === '/api/session')
+      return route.fulfill({ json: { expiresAt: Date.now() + 1e6 } });
+    if (url.pathname === '/api/config') return route.fulfill({ json: { config } });
+    if (url.pathname === '/api/status')
+      return route.fulfill({ json: { connected: false, lastSeen: null, validForMs: 0 } });
+    if (url.pathname === '/api/diagnostics') {
+      runs++;
+      await held;
+      return route.fulfill({
+        json: {
+          durationMs: 40,
+          provider: 'adguard',
+          observedClientFamily: null,
+          checks: [
+            {
+              id: 'application',
+              label: 'Worker and Durable Object',
+              status: 'PASS',
+              durationMs: 3,
+              summary: 'ok',
+            },
+            {
+              id: 'kv-config',
+              label: 'Settings in Workers KV',
+              status: 'PASS',
+              durationMs: 2,
+              summary: 'ok',
+            },
+            {
+              id: 'doh-path',
+              label: 'End-to-end DoH query',
+              status: 'FAIL',
+              durationMs: 20,
+              code: 'proxy-error',
+              summary: 'no answer',
+              remedy: 'See below.',
+            },
+            {
+              id: 'upstream',
+              label: 'Saved upstream resolver',
+              status: 'FAIL',
+              durationMs: 21,
+              code: 'http-status',
+              summary: 'The resolver answered with HTTP 500.',
+              remedy: 'Check the resolver.',
+            },
+            {
+              id: 'client-ip-family',
+              label: 'Observed client-to-Cloudflare IP family',
+              status: 'INCONCLUSIVE',
+              durationMs: null,
+              summary: 'unknown',
+            },
+            {
+              id: 'ip-enforcement',
+              label: 'IPv4-only / IPv6-only enforcement',
+              status: 'UNSUPPORTED',
+              durationMs: null,
+              summary: 'Not tested.',
+            },
+          ],
+        },
+      });
+    }
+    return route.fulfill({
+      response: await route.fetch({ url: `http://127.0.0.1:5173${url.pathname}${url.search}` }),
+    });
+  });
+  await page.goto('https://dns.example.com/');
+  const button = page.getByRole('button', { name: 'Test connectivity' });
+  await expect(button).toBeEnabled();
+  await page.waitForTimeout(1500);
+  expect(runs).toBe(0);
+  await button.click();
+  await expect(page.getByRole('button', { name: 'Testing…' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Testing…' }).click({ force: true });
+  release();
+  const results = page.getByRole('list', { name: 'Connectivity test results' });
+  await expect(results.getByRole('listitem')).toHaveCount(7);
+  expect(runs).toBe(1);
+  await expect(page.getByText('2 checks failed.')).toBeVisible();
+  await expect(results.locator('[data-status="PASS"]')).toHaveCount(3);
+  await expect(results.locator('[data-status="UNSUPPORTED"]')).toContainText(
+    'IPv4-only / IPv6-only enforcement',
+  );
+  await expect(results.locator('[data-status="INCONCLUSIVE"]')).toContainText(
+    'Observed client-to-Cloudflare IP family',
+  );
+  await expect(results).toContainText('Custom domain from this browser');
+  await expect(results).toContainText('Check the resolver.');
+  await expect(
+    page.getByText(
+      'Each DNS check sends one example.com A query. A pass shows only that this query got a valid answer. It does not test your NextDNS filtering rules, account settings, or other record types.',
+    ),
+  ).toBeVisible();
+  await expect(button).toBeEnabled();
+});

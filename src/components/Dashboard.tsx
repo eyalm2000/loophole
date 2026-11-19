@@ -5,6 +5,7 @@ import { ProviderForm } from './ProviderForm';
 import { ConnectionStatus } from './ConnectionStatus';
 import { CopyCard, ErrorText, Spinner } from './ui';
 import { Modal } from './Modal';
+import { Diagnostics } from './Diagnostics';
 export function Dashboard({
   config,
   save,
@@ -83,6 +84,7 @@ export function Dashboard({
         {config.domain && <CopyCard value={config.domain} label="Private DNS hostname" />}
         <CopyCard value={`${location.origin}/dns-query`} label="DoH URL" />
       </div>
+      <Diagnostics domain={config.domain} />
       <div className="dashboard-actions">
         <button
           className="button secondary"

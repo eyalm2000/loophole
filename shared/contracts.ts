@@ -61,3 +61,32 @@ export interface TestResult {
   latencyMs: number;
   provider: Provider;
 }
+// PASS: executed and its stated conditions were verified. FAIL: executed and a known
+// condition failed. UNSUPPORTED: this deployment cannot perform it. INCONCLUSIVE: not
+// enough evidence either way. Skipped or timed-out work is never PASS.
+export type DiagnosticStatus = 'PASS' | 'FAIL' | 'UNSUPPORTED' | 'INCONCLUSIVE';
+export type DiagnosticId =
+  | 'application'
+  | 'kv-config'
+  | 'doh-path'
+  | 'upstream'
+  | 'origin'
+  | 'client-ip-family'
+  | 'ip-enforcement';
+export interface DiagnosticCheck {
+  id: DiagnosticId;
+  label: string;
+  status: DiagnosticStatus;
+  durationMs: number | null;
+  summary: string;
+  remedy?: string;
+  // Stable machine-readable reason, for example "timeout" or "http-status".
+  code?: string;
+}
+export type IpFamily = 'ipv4' | 'ipv6';
+export interface DiagnosticReport {
+  durationMs: number;
+  provider: Provider;
+  observedClientFamily: IpFamily | null;
+  checks: DiagnosticCheck[];
+}
